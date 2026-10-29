@@ -3,10 +3,7 @@ package com.goosepatrol.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.ScreenUtils;
 
@@ -16,19 +13,15 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // Object used to draw simple shapes.
     private ShapeRenderer shapeRenderer;
 
-    // Student's position on the screen.
-    private float playerX = 200f;
-    private float playerY = 120f;
-
-    // Width and height of the student.
-    private static final float PLAYER_SIZE = 80f;
-    // Speed at which the student moves across the screen.
-    private static final float PLAYER_SPEED = 200f;
+    // The student character
+    private Player player;
 
     @Override
     public void create() {
         // Initialise the shape drawing object.
         shapeRenderer = new ShapeRenderer();
+
+        player = new Player(150f, 120f);
 
         System.out.println("Goose Patrol has started!");
     }
@@ -36,10 +29,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // Called every frame to update the game state and render the screen.
     @Override
     public void render() {
-
+        // Calculate the time since the last frame.
         float deltaTime = Gdx.graphics.getDeltaTime();
-        handleInput(deltaTime);
-        keepPlayerInsideWindow();
+
+        // Update the student's movement based on input.
+        player.updateMovement(deltaTime);
 
         // Draw a green background.
         ScreenUtils.clear(0.4f, 0.7f, 0.4f, 1f);
@@ -47,57 +41,13 @@ public class GoosePatrolGame extends ApplicationAdapter {
         // Begin drawing filled shapes.
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Set the student's colour to blue.
-        shapeRenderer.setColor(Color.BLUE);
-
-        // Draw the student as a rectangle.
-        shapeRenderer.rect(
-            playerX,
-            playerY,
-            PLAYER_SIZE,
-            PLAYER_SIZE
-        );
+        // Draw the student character.
+        player.draw(shapeRenderer);
 
         // Finish drawing.
         shapeRenderer.end();
     }
 
-    // Keep the student inside the window.
-    private void handleInput(float deltaTime) {
-        float movement = PLAYER_SPEED * deltaTime;  // Calculate the distance to move based on speed and time.
-        // Move up
-        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            playerX += movement;
-        }
-        // Move down
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            playerX -= movement;
-        }
-        // Move left
-        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            playerY += movement;
-        }
-        // Move right
-        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            playerY -= movement;
-        }
-    }
-
-    // Prevent the student from leaving the window.
-    private void keepPlayerInsideWindow() {
-
-        playerX = MathUtils.clamp(
-            playerX,
-            0f,
-            Gdx.graphics.getWidth() - PLAYER_SIZE
-        );
-
-        playerY = MathUtils.clamp(
-            playerY,
-            0f,
-            Gdx.graphics.getHeight() - PLAYER_SIZE
-        );
-    }
 
     // Handle window resizing events.
     @Override
@@ -106,9 +56,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
         shapeRenderer.setProjectionMatrix(
             new Matrix4().setToOrtho2D(0, 0, width, height)
         );
-
-        keepPlayerInsideWindow();
+        // Ensure the player stays within the new window size.
+        player.keepInsideWindow(width, height);
     }
+
     // Release resources when the game is closed.
     @Override
     public void dispose() {
