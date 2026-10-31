@@ -3,9 +3,10 @@ package com.goosepatrol.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 
 public class Player {
 
@@ -14,7 +15,7 @@ public class Player {
     private float y;
 
     // The student's size and speed.
-    private static final float SIZE = 50f;
+    private static final float SIZE = 64f;
     private static final float SPEED = 200f;
 
     // Constructor: creates a player at a starting position.
@@ -62,17 +63,15 @@ public class Player {
     // Keep the player inside the specified window size.
     public void keepInsideWindow(int width, int height) {
 
-        float maxX = Math.max(0f, width - SIZE);
-        float maxY = Math.max(0f, height - SIZE);
+        float maxX = Math.max(0f, width - SIZE); // Calculate the maximum x-coordinate to keep the player inside the window.
+        float maxY = Math.max(0f, height - SIZE); // Calculate the maximum y-coordinate to keep the player inside the window.
 
-        x = MathUtils.clamp(x, 0f, maxX);
-        y = MathUtils.clamp(y, 0f, maxY);
+        x = MathUtils.clamp(x, 0f, maxX); // Clamp the x-coordinate to stay within the window bounds.
+        y = MathUtils.clamp(y, 0f, maxY); // Clamp the y-coordinate to stay within the window bounds.
     }
 
-    // Draw the player using the supplied ShapeRenderer.
-    public void draw(ShapeRenderer renderer) {
-
-        renderer.setColor(Color.BLUE);
-        renderer.rect(x, y, SIZE, SIZE);
+    // Draw the player using the supplied SpriteBatch and TextureRegion.
+    public void draw(SpriteBatch batch, TextureRegion playerFrame) {
+        batch.draw(playerFrame, x, y, SIZE, SIZE);
     }
 }
