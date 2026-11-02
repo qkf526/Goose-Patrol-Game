@@ -21,9 +21,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // The texture for the player character to load the sprite sheet.
     private Texture playerSheet;
 
-    // The texture region for the player character to select a specific frame.
-    private TextureRegion playerFrame;
-
     @Override
     public void create() {
 
@@ -33,9 +30,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         playerSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
 
-        playerFrame = new TextureRegion(playerSheet, 0, 0, 16, 16); // Create a texture region to select the first frame of the sprite sheet.
+        TextureRegion[][] frames = TextureRegion.split(playerSheet, 16, 16); // Split the sprite sheet into individual frames of size 16x16pixels.
 
-        player = new Player(150, 120); // Create a new player character at the starting position (150, 120).
+        player = new Player(150f, 120f, frames); // Create a new player character at the starting position (150, 120) using the split frames from the sprite sheet.
 
         System.out.println("Goose Patrol has started!");
     }
@@ -52,7 +49,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         batch.begin(); // Begin drawing textures.
 
-        player.draw(batch, playerFrame); // Draw the player character using the sprite batch and the selected texture region.
+        player.draw(batch); // Draw the player character using the sprite batch.
 
         batch.end(); // End drawing textures.
     }
