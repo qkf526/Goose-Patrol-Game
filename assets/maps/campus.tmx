@@ -1,13 +1,13 @@
-<?xml version='1.0' encoding='utf-8'?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="45" height="34" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1" backgroundcolor="#7db35d">
-  <properties>
-    <property name="map_name" value="Goose Patrol Campus" />
-    <property name="lesson" value="Lesson 7: map rendering only; add collisions later" />
-  </properties>
-  <tileset firstgid="1" source="campus_art.tsx" />
-  <tileset firstgid="1531" source="campus_terrain.tsx" />
-  <layer id="1" name="Campus Artwork" width="45" height="34" locked="1">
-    <data encoding="csv">
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="45" height="34" tilewidth="32" tileheight="32" infinite="0" backgroundcolor="#7db35d" nextlayerid="4" nextobjectid="81">
+ <properties>
+  <property name="lesson" value="Lesson 7: map rendering only; add collisions later"/>
+  <property name="map_name" value="Goose Patrol Campus"/>
+ </properties>
+ <tileset firstgid="1" source="campus_art.tsx"/>
+ <tileset firstgid="1531" source="campus_terrain.tsx"/>
+ <layer id="1" name="Campus Artwork" width="45" height="34" locked="1">
+  <data encoding="csv">
 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,
 46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,
 91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,
@@ -43,9 +43,87 @@
 1441,1442,1443,1444,1445,1446,1447,1448,1449,1450,1451,1452,1453,1454,1455,1456,1457,1458,1459,1460,1461,1462,1463,1464,1465,1466,1467,1468,1469,1470,1471,1472,1473,1474,1475,1476,1477,1478,1479,1480,1481,1482,1483,1484,1485,
 1486,1487,1488,1489,1490,1491,1492,1493,1494,1495,1496,1497,1498,1499,1500,1501,1502,1503,1504,1505,1506,1507,1508,1509,1510,1511,1512,1513,1514,1515,1516,1517,1518,1519,1520,1521,1522,1523,1524,1525,1526,1527,1528,1529,1530
 </data>
-  </layer>
-  <layer id="2" name="Optional Terrain Edits" width="45" height="34" opacity="1">
-    <data encoding="csv">
+ </layer>
+ <objectgroup id="3" name="Collisions">
+  <object id="4" x="2.93743" y="1.95829" width="490.551" height="323.118"/>
+  <object id="5" x="0.979144" y="329.972" width="177.225" height="229.12"/>
+  <object id="6" x="1.95829" y="560.07" width="144.913" height="68.5401"/>
+  <object id="7" x="0.979144" y="628.611" width="122.393" height="30.3535"/>
+  <object id="8" x="125.33" y="630.569" width="27.416" height="16.6455"/>
+  <object id="9" x="1.95829" y="659.943" width="79.3107" height="72.4567"/>
+  <object id="10" x="0.979144" y="734.358" width="62.6652" height="34.27"/>
+  <object id="11" x="1.95829" y="770.587" width="70.4984" height="49.9364"/>
+  <object id="12" x="0.979144" y="820.523" width="32.3118" height="42.1032"/>
+  <object id="13" x="0" y="863.605" width="26.4369" height="12.7289"/>
+  <object id="14" x="1.95829" y="878.292" width="19.5829" height="64.6235"/>
+  <object id="15" x="22.5203" y="879.272" width="18.6037" height="31.3326"/>
+  <object id="16" x="1.95829" y="945.853" width="39.1658" height="63.6444"/>
+  <object id="17" x="1.95829" y="1008.52" width="53.8529" height="73.4358"/>
+  <object id="18" x="55.8112" y="998.727" width="37.2075" height="87.1438"/>
+  <object id="19" x="93.9978" y="1009.5" width="27.416" height="73.4358"/>
+  <object id="20" x="122.393" y="1019.29" width="11.7497" height="65.6027"/>
+  <object id="21" x="137.08" y="1042.79" width="50.9155" height="45.0406"/>
+  <object id="22" x="186.671" y="1060.71" width="1250.87" height="24.4243"/>
+  <object id="23" x="179.693" y="959.525" width="1064.2" height="97.6971"/>
+  <object id="24" x="1348.57" y="1003.14" width="90.7188" height="55.8269"/>
+  <object id="25" x="1359.04" y="840.893" width="80.2512" height="160.502"/>
+  <object id="26" x="497.209" y="5.23378" width="928.123" height="303.559"/>
+  <object id="27" x="533.845" y="307.048" width="26.1689" height="19.1905"/>
+  <object id="28" x="708.304" y="308.793" width="387.299" height="31.4027"/>
+  <object id="29" x="1120.03" y="305.304" width="324.494" height="22.6797"/>
+  <object id="30" x="245.987" y="322.749" width="54.0823" height="20.9351"/>
+  <object id="31" x="312.282" y="321.005" width="24.4243" height="29.6581"/>
+  <object id="32" x="457.083" y="322.749" width="33.1472" height="15.7013"/>
+  <object id="33" x="226.797" y="467.551" width="27.9135" height="22.6797"/>
+  <object id="34" x="474.529" y="471.04" width="27.9135" height="22.6797"/>
+  <object id="35" x="790.3" y="458.828" width="24.4243" height="15.7013"/>
+  <object id="36" x="1078.16" y="519.888" width="27.9135" height="20.9351"/>
+  <object id="37" x="197.139" y="774.599" width="57.5715" height="38.381"/>
+  <object id="38" x="572.226" y="694.348" width="50.5932" height="27.9135"/>
+  <object id="39" x="708.304" y="694.348" width="48.8486" height="26.1689"/>
+  <object id="40" x="1043.27" y="762.387" width="54.0823" height="27.9135"/>
+  <object id="41" x="976.971" y="717.027" width="24.4243" height="19.1905"/>
+  <object id="42" x="1072.92" y="699.581" width="69.7837" height="33.1472"/>
+  <object id="43" x="1160.15" y="696.092" width="29.6581" height="20.9351"/>
+  <object id="44" x="982.205" y="401.256" width="41.8702" height="34.8918"/>
+  <object id="45" x="533.845" y="373.343" width="27.9135" height="31.4027"/>
+  <object id="46" x="556.525" y="479.763" width="47.104" height="31.4027"/>
+  <object id="47" x="715.283" y="483.252" width="45.3594" height="24.4243"/>
+  <object id="48" x="282.624" y="783.322" width="26.1689" height="20.9351"/>
+  <object id="49" x="420.447" y="724.006" width="24.4243" height="19.1905"/>
+  <object id="50" x="837.404" y="724.006" width="75.0174" height="45.3594"/>
+  <object id="51" x="97.6971" y="929.867" width="40.1256" height="26.1689"/>
+  <object id="52" x="127.355" y="954.292" width="38.381" height="20.9351"/>
+  <object id="53" x="1198.53" y="908.932" width="47.104" height="29.6581"/>
+  <object id="54" x="1172.37" y="935.101" width="68.0391" height="38.381"/>
+  <object id="55" x="539.782" y="730.109" width="21.8409" height="28.0811"/>
+  <object id="56" x="768.331" y="737.91" width="19.5008" height="24.961"/>
+  <object id="57" x="892.356" y="558.502" width="19.5008" height="23.4009"/>
+  <object id="58" x="315.133" y="544.462" width="15.6006" height="18.7207"/>
+  <object id="59" x="1223.66" y="479.125" width="41.7495" height="42.7435"/>
+  <object id="60" x="1236.58" y="328.032" width="46.7197" height="159.046"/>
+  <object id="61" x="1282.31" y="324.056" width="160.04" height="78.5288"/>
+  <object id="62" x="1281.31" y="399.602" width="18.8867" height="45.7256"/>
+  <object id="63" x="1281.31" y="443.34" width="85.4871" height="117.296"/>
+  <object id="64" x="1236.58" y="818.091" width="32.8032" height="21.8688"/>
+  <object id="65" x="1338.97" y="814.115" width="18.8867" height="23.8569"/>
+  <object id="66" x="148.111" y="841.948" width="18.8867" height="20.8748"/>
+  <object id="67" x="151.435" y="923.097" width="1053.46" height="32.9207"/>
+  <object id="68" x="165.92" y="907.295" width="1033.71" height="14.4851"/>
+  <object id="69" x="188.307" y="891.493" width="1016.59" height="11.8515"/>
+  <object id="70" x="226.495" y="882.275" width="981.038" height="6.58415"/>
+  <object id="71" x="254.148" y="873.058" width="164.604" height="9.2178"/>
+  <object id="72" x="516.197" y="870.424" width="676.85" height="9.2178"/>
+  <object id="73" x="541.217" y="855.939" width="642.613" height="9.2178"/>
+  <object id="74" x="572.821" y="844.087" width="592.573" height="9.2178"/>
+  <object id="75" x="616.276" y="833.553" width="175.138" height="7.90097"/>
+  <object id="76" x="670.266" y="829.602" width="75.0593" height="2.63366"/>
+  <object id="77" x="791.414" y="836.186" width="362.128" height="5.26732"/>
+  <object id="78" x="886.226" y="826.969" width="239.663" height="5.26732"/>
+  <object id="79" x="928.364" y="817.751" width="168.554" height="6.58415"/>
+ </objectgroup>
+ <layer id="2" name="Optional Terrain Edits" width="45" height="34">
+  <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -81,5 +159,5 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
-  </layer>
+ </layer>
 </map>

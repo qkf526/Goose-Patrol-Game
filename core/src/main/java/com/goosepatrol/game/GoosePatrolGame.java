@@ -31,9 +31,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private static final float VIEW_WIDTH = 794f; 
     private static final float VIEW_HEIGHT = 600f; 
 
-    // The campus map and its renderer for displaying the tiled map.
+    // The campus map and its renderer for displaying the tiled map and the collision map for detecting obstacles.
     private TiledMap campusMap;
     private OrthogonalTiledMapRenderer mapRenderer;
+    private CollisionMap collisions;
 
     // The camera and viewport for controlling the view of the game world.
     private OrthographicCamera camera;
@@ -61,6 +62,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
         // LOAD MAP
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
         mapRenderer = new OrthogonalTiledMapRenderer(campusMap); // Create a renderer for the campus map.
+        collisions = new CollisionMap(campusMap); // Create a collision map for detecting obstacles in the campus map.
+        System.out.println("Collision zones loaded: " + collisions.getObstacleCount()); // Print the number of collision zones loaded from the map to the console.
 
         // READ MAP DIMENSIONS
         int columns = campusMap.getProperties().get("width", Integer.class); // Get the number of columns in the map.
@@ -86,7 +89,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
 
-        player.updateMovement(deltaTime); // Update the student's movement based on input.
+        player.updateMovement(deltaTime, collisions); // Update the student's movement based on input.
 
         player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
 

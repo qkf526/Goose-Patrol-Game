@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.math.Rectangle;
 
 
 public class Player {
@@ -18,6 +19,10 @@ public class Player {
     // The student's size and speed.
     private static final float SIZE = 48f;
     private static final float SPEED = 200f;
+
+    // The size of the rectangle representing the student's feet for collision detection.
+    private static final float FEET_WIDTH = 24f;
+    private static final float FEET_HEIGHT = 12f; 
 
     // Duration of each frame in seconds.
     private static final float FRAME_DURATION = 0.17f; 
@@ -58,7 +63,7 @@ public class Player {
     }
 
     // Update the student's movement every frame.
-    public void updateMovement(float deltaTime) {
+    public void updateMovement(float deltaTime, CollisionMap collisions) {
 
         float dx = 0f; // Change in x-coordinate.
         float dy = 0f; // Change in y-coordinate.
@@ -87,10 +92,10 @@ public class Player {
             dy -= 1f;
         }
 
-        moving = (dx != 0f || dy != 0f); // Check if the player is moving.
+        boolean movementRequested = (dx != 0f || dy != 0f); // Check if the player is moving.
 
         // Normalize the movement vector and update the player's position and facing direction if moving.
-        if (moving) {
+        if (movementRequested) {
 
             // Update the facing direction based on the movement vector.
             if (dx != 0f) {
@@ -111,15 +116,27 @@ public class Player {
             float length = (float) Math.sqrt(dx * dx + dy * dy);
 
             // Move at a consistent speed.
-            x += (dx / length) * SPEED * deltaTime;
-            y += (dy / length) * SPEED * deltaTime;
+            float movementX = (dx / length) * SPEED * deltaTime;
+            float movementY = (dy / length) * SPEED * deltaTime;
+
+            float oldX = x; // Store the old x-coordinate for collision checking.
+            float oldY = y; // Store the old y-coordinate for collision checking.
+
+            moveWithCollisions(movementX, movementY, collisions); // Move the player with collision detection.
+
+            moving = (x != oldX || y != oldY); // Check if the player actually moved after collision detection.
 
             // Advance animation time while moving.
             animationTime += deltaTime;
 
         } else {
-            // Show the first frame while standing still.
-            animationTime = 0f;
+            moving = false; // Player is not moving.
+        }
+
+        if (moving) {
+            animationTime += deltaTime; // Advance animation time while moving.
+        } else {
+            animationTime = 0f; // Reset animation time when standing still.
         }
 
     }
@@ -172,4 +189,43 @@ public class Player {
     public float getCentreY() {
         return y + SIZE /2f;
     }
+
+    // Get the rectangle representing the player's feet for collision detection.
+    public Rectangle getFeetBounds() {
+        float feetX = x + (SIZE - FEET_WIDTH) / 2f; // Calculate the x-coordinate of the feet rectangle.
+        float feetY = y + 2f; // Calculate the y-coordinate of the feet rectangle, slightly above the bottom of the player sprite.
+        return new Rectangle(feetX, feetY, FEET_WIDTH, FEET_HEIGHT); // Return a new rectangle representing the player's feet.
+    }
+
+    // Move the player with collision detection against the provided CollisionMap.
+    private void moveWithCollisions(float moveX, float moveY, CollisionMap collisions) {
+
+        // Split large movements into smaller steps.
+        float largestMove = Math.max(Math.abs(moveX),Math.abs(moveY));
+
+        int steps = Math.max(1,(int) Math.ceil(largestMove / 4f));
+
+        float stepX = moveX / steps;
+        float stepY = moveY / steps;
+
+        for (int i = 0; i < steps; i++) {
+
+            // First try horizontal movement.
+            float oldX = x;
+            x += stepX;
+
+            if (collisions.isBlocked(getFeetBounds())) {
+                x = oldX;
+            }
+
+            // Then try vertical movement.
+            float oldY = y;
+            y += stepY;
+
+            if (collisions.isBlocked(getFeetBounds())) {
+                y = oldY;
+            }
+        }
+    }
+
 }
