@@ -16,7 +16,7 @@ public class Player {
     private float y;
 
     // The student's size and speed.
-    private static final float SIZE = 64f;
+    private static final float SIZE = 48f;
     private static final float SPEED = 200f;
 
     // Duration of each frame in seconds.
@@ -122,11 +122,6 @@ public class Player {
             animationTime = 0f;
         }
 
-        // Prevent the player from leaving the window.
-        keepInsideWindow(
-            Gdx.graphics.getWidth(),
-            Gdx.graphics.getHeight()
-        );
     }
 
 
@@ -144,11 +139,11 @@ public class Player {
         }
     }
 
-    // Keep the player inside the specified window size.
-    public void keepInsideWindow(int width, int height) {
+    // Keep the player inside the window bounds based on the provided map width and height.
+    public void keepInsideMap(int mapWidth, int mapHeight) {
 
-        float maxX = Math.max(0f, width - SIZE); // Calculate the maximum x-coordinate to keep the player inside the window.
-        float maxY = Math.max(0f, height - SIZE); // Calculate the maximum y-coordinate to keep the player inside the window.
+        float maxX = Math.max(0f, mapWidth - SIZE); // Calculate the maximum x-coordinate to keep the player inside the window.
+        float maxY = Math.max(0f, mapHeight - SIZE); // Calculate the maximum y-coordinate to keep the player inside the window.
 
         x = MathUtils.clamp(x, 0f, maxX); // Clamp the x-coordinate to stay within the window bounds.
         y = MathUtils.clamp(y, 0f, maxY); // Clamp the y-coordinate to stay within the window bounds.
@@ -166,5 +161,15 @@ public class Player {
             currentFrame = animation.getKeyFrames()[0]; // Show the first frame of the walking animation if standing still.
         }
         batch.draw(currentFrame, x, y, SIZE, SIZE); // Draw the current frame at the player's position with the specified size.
+    }
+
+    // Get the x-coordinate of the player's center.
+    public float getCentreX() {
+        return x + SIZE / 2f; 
+    }
+
+    // Get the y-coordinate of the player's center.
+    public float getCentreY() {
+        return y + SIZE /2f;
     }
 }
