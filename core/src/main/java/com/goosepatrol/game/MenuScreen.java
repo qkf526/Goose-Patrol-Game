@@ -1,6 +1,7 @@
 package com.goosepatrol.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.utils.ScreenUtils;
 
@@ -35,12 +36,17 @@ public class MenuScreen implements Screen {
         game.batch.begin();
         game.font.draw(game.batch, "MAIN MENU", 100, 300);
         game.font.draw(game.batch, "Click to Start", 100, 240);
+        game.font.draw(game.batch, "Press T for Controls", 100, 180);
         game.batch.end();
 
         // justTouched() true for only one frame - action happens once not every frame
         if (Gdx.input.justTouched())
         {
             game.setScreen(new GameScreen(game)); // makes new game screen so every play starts new
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T))
+        {
+            game.setScreen(new ControlsScreen(game, this));
         }
     }
 

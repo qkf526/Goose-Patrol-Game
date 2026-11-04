@@ -13,6 +13,7 @@ public class GameScreen implements Screen {
      */
     public GameScreen(GoosePatrolGame game)
     {
+
         this.game = game;
     }
 
@@ -40,7 +41,12 @@ public class GameScreen implements Screen {
             //current standin for losing game
             // if click space - game over
             //condition will change
+            dispose();
             game.setScreen(new GameOverScreen(game));
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
+        {
+            game.setScreen(new PauseScreen(game, this));
         }
     }
 
@@ -96,7 +102,7 @@ public class GameScreen implements Screen {
     @Override
     public void hide()
     {
-        dispose();
+
     }
 
     /**
