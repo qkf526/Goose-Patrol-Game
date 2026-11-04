@@ -3,6 +3,7 @@ package com.goosepatrol.game;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
@@ -29,11 +30,17 @@ public class EventArea {
     private static final float EXIT_X = 40f;
     private static final float EXIT_Y = 40f;
 
+    // The squares the student has to step on to use each sprite.
+    private Rectangle entranceBounds;
+    private Rectangle exitBounds;
+
     // Constructor: starts the student on the main map and creates the event and the event sprite.
     public EventArea() {
         this.inEventArea = false;
         this.itemEvent = new Event(400, 300, 60, "You found something!", "PLACEHOLDER_ITEM_1");
         this.eventSprite = loadEventSprite(); // Load the event sprite.
+        this.entranceBounds = new Rectangle(ENTRANCE_X, ENTRANCE_Y, SPRITE_SIZE, SPRITE_SIZE);
+        this.exitBounds = new Rectangle(EXIT_X, EXIT_Y, SPRITE_SIZE, SPRITE_SIZE);
     }
 
     // Load the texture for the event sprite.
@@ -47,35 +54,27 @@ public class EventArea {
         return placeholder;
     }
 
-    // Update the event area every frame and return the student's new x-coordinate.
-    public float update(float playerX, float playerY, float playerSize) {
+    // Move the student between maps and run the event. Called every frame.
+    public void update(Player player) {
 
-        // Move the student into the event area when they walk into the event sprite on the main map.
-        if (!inEventArea && isTouching(ENTRANCE_X, ENTRANCE_Y, playerX, playerY, playerSize)) {
+        // If the student steps on the sprite on the main map, go to the event area.
+        if (!inEventArea && player.getFeetBounds().overlaps(entranceBounds)) {
             inEventArea = true;
-            return EXIT_X + SPRITE_SIZE + 100f; // Place the student away from the exit sprite so they are not sent straight back.
+            player.setX(EXIT_X + SPRITE_SIZE + 100f); // Put the student away from the exit sprite so they don't go straight back.
+            return;
         }
 
-        // Move the student back to the main map when they walk into the event sprite in the event area.
-        if (inEventArea && isTouching(EXIT_X, EXIT_Y, playerX, playerY, playerSize)) {
+        // If the student steps on the sprite in the event area, go back to the main map.
+        if (inEventArea && player.getFeetBounds().overlaps(exitBounds)) {
             inEventArea = false;
-            return ENTRANCE_X - playerSize - 20f; // Place the student next to the entrance sprite so they are not sent straight back.
+            player.setX(ENTRANCE_X - 100f); // Put the student to the left of the entrance sprite so they don't go straight back.
+            return;
         }
 
-        // Check whether the student is close enough to the event.
+        // In the event area, check if the student is close to the event.
         if (inEventArea) {
-            itemEvent.checkPlayerInRange(playerX + playerSize / 2f, playerY + playerSize / 2f);
+            itemEvent.checkPlayerInRange(player.getCentreX(), player.getCentreY()); // Use the middle of the student.
         }
-
-        return playerX; // student did not change map and stays in the same place
-    }
-
-    // Check whether the student is overlapping an event sprite.
-    private boolean isTouching(float spriteX, float spriteY, float playerX, float playerY, float playerSize) {
-        return playerX < spriteX + SPRITE_SIZE &&
-               playerX + playerSize > spriteX &&
-               playerY < spriteY + SPRITE_SIZE &&
-               playerY + playerSize > spriteY;
     }
 
     // Fill the screen with the colour of the current map.
