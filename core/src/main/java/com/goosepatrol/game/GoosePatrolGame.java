@@ -15,6 +15,7 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import com.badlogic.gdx.Input;
 
 public class GoosePatrolGame extends ApplicationAdapter {
 
@@ -51,11 +52,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
         // LOAD CHARACTER
         batch = new SpriteBatch(); // Initialise the sprite batch for drawing textures.
 
-        playerSheet = new Texture(Gdx.files.internal("student_sheet.png")); // Load the sprite sheet for the player character.
+        playerSheet = new Texture(Gdx.files.internal("character/student_sheet.png")); // Load the sprite sheet for the player character.
 
         playerSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
 
-        TextureRegion[][] frames = TextureRegion.split(playerSheet, 16, 16); // Split the sprite sheet into individual frames of size 16x16pixels.
+        TextureRegion[][] frames = TextureRegion.split(playerSheet, 300, 300); // Split the sprite sheet into individual frames of size 16x16pixels.
 
         player = new Player(185f, 470f, frames); // Create a new player character at the starting position (185, 470).
 
@@ -90,6 +91,55 @@ public class GoosePatrolGame extends ApplicationAdapter {
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
 
         player.updateMovement(deltaTime, collisions); // Update the student's movement based on input.
+
+
+        // TEMPORARY TEST: Simulate a goose peck.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+
+            boolean damageApplied = player.takeDamage(1);
+
+            if (damageApplied) {
+                System.out.println("Goose peck! Health: " +player.getHealth());
+            } else {
+                System.out.println("No damage applied.");
+            }
+        }
+
+        // TEMPORARY TEST: Heal the player.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+
+            player.heal(1);
+
+            System.out.println("Healed by 1 point. Current health: " + player.getHealth());
+        }
+
+        // BANDAGE TEMPORARY HEAL TEMPORARY TEST: Heal the player using bandage.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+
+            player.heal(2);
+            System.out.println("Bandage used! Health restored by 2 points.");
+            System.out.println("Current health: " + player.getHealth());
+        }
+
+
+        // SAUSAGE ROLL HEAL TEMPORARY TEST: Heal the player using sausage roll.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+
+            player.resetHealth();
+            System.out.println("Sausage roll consumed! Health restored to maximum.");
+            System.out.println("Current health: " + player.getHealth());
+        }
+
+        // TEMPORARY TEST: Restart after defeat.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+
+            if (!player.isDefeated()) {
+                System.out.println("Player is not defeated. Can't reset health.");
+            } else {
+                player.resetHealth();
+                System.out.println("Player health reset!");
+            }
+        }
 
         player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
 

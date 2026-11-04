@@ -17,15 +17,20 @@ public class Player {
     private float y;
 
     // The student's size and speed.
-    private static final float SIZE = 48f;
+    private static final float SIZE = 78.5f;
     private static final float SPEED = 200f;
 
     // The size of the rectangle representing the student's feet for collision detection.
     private static final float FEET_WIDTH = 24f;
     private static final float FEET_HEIGHT = 12f; 
 
+    private static final int MAX_HEALTH = 5; // The maximum health of the player.
+    private static final float INVINCIBILITY_DURATION = 1f; // Duration of invincibility after taking damage in seconds.
+    private int health = MAX_HEALTH; // The current health of the player.
+    private float invincibilityTimer = 0f; // Timer to track invincibility duration after taking damage.
+
     // Duration of each frame in seconds.
-    private static final float FRAME_DURATION = 0.17f; 
+    private static final float FRAME_DURATION = 0.3f; 
 
     // The student's possible movement directions.
     private enum Direction {UP, DOWN, LEFT, RIGHT}
@@ -64,6 +69,21 @@ public class Player {
 
     // Update the student's movement every frame.
     public void updateMovement(float deltaTime, CollisionMap collisions) {
+
+    // Reduce temporary protection time.
+    if (invincibilityTimer > 0f) {
+        invincibilityTimer = Math.max(0f, invincibilityTimer - deltaTime);
+    }
+
+    // Defeated players cannot move.
+    if (isDefeated()) {
+
+        moving = false;
+        animationTime = 0f;
+
+        return;
+    }
+
 
         float dx = 0f; // Change in x-coordinate.
         float dy = 0f; // Change in y-coordinate.
@@ -140,7 +160,6 @@ public class Player {
         }
 
     }
-
 
     // Get the walking animation based on the player's facing direction.
     private Animation <TextureRegion> getWalkingAnimation() {
@@ -226,6 +245,60 @@ public class Player {
                 y = oldY;
             }
         }
+    }
+
+    // Method to take damage and reduce the player's health, returning true if damage was taken, false otherwise.
+    public boolean takeDamage(int amount) {
+
+        if (amount <= 0 || isInvincible() || isDefeated()) {
+            return false; // No damage taken if the amount is non-positive or the player is invulnerable.
+        }
+
+        health = Math.max(0, health - amount); // Reduce health by the damage amount, ensuring it doesn't go below 0.
+        invincibilityTimer = INVINCIBILITY_DURATION; // Start the invincibility timer after taking damage.
+        return true; // Damage was successfully taken.
+    }
+
+
+    // Restore health without exceeding the maximum.
+    public void heal(int amount) {
+
+        // Ignore invalid healing or healing after defeat.
+        if (amount <= 0 || isDefeated()) {
+            return;
+        }
+
+        health = Math.min(MAX_HEALTH, health + amount); // Increase health by the healing amount, ensuring it doesn't exceed the maximum.
+    }
+
+    // Restore the player's health and clear damage protection.
+    public void resetHealth() {
+
+        health = MAX_HEALTH;
+        invincibilityTimer = 0f;
+
+        moving = false;
+        animationTime = 0f;
+    }
+
+    // Return true while temporary protection is active.
+    public boolean isInvincible() {
+        return invincibilityTimer > 0f;
+    }
+
+    // Return true when the player has no health.
+    public boolean isDefeated() {
+        return health == 0;
+    }
+
+    // Return the player's current health.
+    public int getHealth() {
+        return health;
+    }
+
+    // Return the maximum permitted health.
+    public int getMaxHealth() {
+        return MAX_HEALTH;
     }
 
 }
