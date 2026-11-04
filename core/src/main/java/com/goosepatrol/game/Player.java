@@ -230,6 +230,12 @@ public class Player {
         y = MathUtils.clamp(y, 0f, maxY); // Clamp the y-coordinate to stay within the window bounds.
     }
 
+
+    // Set the student's x-coordinate when moving between maps.
+    public void setX(float x) {
+        this.x = x;
+    }
+
     // Draw the player character using the provided sprite batch and the current animation frame.
     public void draw(SpriteBatch batch) {
 
