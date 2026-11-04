@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.graphics.Color;
 
 
 public class Player {
@@ -29,6 +30,20 @@ public class Player {
     private int health = MAX_HEALTH; // The current health of the player.
     private float invincibilityTimer = 0f; // Timer to track invincibility duration after taking damage.
 
+    // How quickly the player is pushed away.
+    private static final float KNOCKBACK_SPEED = 150f;
+
+    // How long the push lasts, in seconds.
+    private static final float KNOCKBACK_DURATION = 0.16f;
+
+    // Current knockback velocity.
+    private float knockbackVelocityX = 0f;
+    private float knockbackVelocityY = 0f;
+
+    // Time remaining for the knockback movement.
+    private float knockbackTimeRemaining = 0f;
+
+
     // Duration of each frame in seconds.
     private static final float FRAME_DURATION = 0.3f; 
 
@@ -43,6 +58,18 @@ public class Player {
 
     // Time spent playing the current animation.
     private float animationTime = 0f;
+
+    // Duration of each frame, total duration, and timers for the hurt animation.
+    private static final float HURT_FRAME_DURATION = 0.12f;
+    private static final float HURT_DURATION = 0.36f;
+    private float hurtTimer = 0f;
+    private float hurtAnimationTime = 0f;
+
+    // Hurt animations for each direction.
+    private Animation<TextureRegion> hurtUp;
+    private Animation<TextureRegion> hurtDown;
+    private Animation<TextureRegion> hurtLeft;
+    private Animation<TextureRegion> hurtRight;
 
     // Walking animations for each direction.
     private Animation<TextureRegion> walkUp;
@@ -70,19 +97,37 @@ public class Player {
     // Update the student's movement every frame.
     public void updateMovement(float deltaTime, CollisionMap collisions) {
 
-    // Reduce temporary protection time.
-    if (invincibilityTimer > 0f) {
-        invincibilityTimer = Math.max(0f, invincibilityTimer - deltaTime);
-    }
+        // Reduce temporary protection time.
+        if (invincibilityTimer > 0f) {
+            invincibilityTimer = Math.max(0f, invincibilityTimer - deltaTime);
+        }
 
-    // Defeated players cannot move.
-    if (isDefeated()) {
+        // Update hurt animation time and prevent movement while hurt.
+        if (isHurting()) {
+            hurtAnimationTime += deltaTime;
 
-        moving = false;
-        animationTime = 0f;
+            // Apply knockback while its timer is active.
+            if (knockbackTimeRemaining > 0f) {
 
-        return;
-    }
+                float stepTime = Math.min(deltaTime, knockbackTimeRemaining); // Only use the remaining knockback time.
+                moveWithCollisions(knockbackVelocityX * stepTime, knockbackVelocityY * stepTime, collisions); // Move the player with collision detection during knockback.
+                knockbackTimeRemaining = Math.max(0f, knockbackTimeRemaining - stepTime); // Reduce the remaining knockback time.
+            }
+
+            hurtTimer = Math.max(0f, hurtTimer - deltaTime);
+            moving = false; 
+            animationTime = 0f;
+            return; // Skip movement updates while hurt.
+        }
+
+        // Defeated players cannot move.
+        if (isDefeated()) {
+
+            moving = false;
+            animationTime = 0f;
+
+            return;
+        }
 
 
         float dx = 0f; // Change in x-coordinate.
@@ -187,16 +232,27 @@ public class Player {
 
     // Draw the player character using the provided sprite batch and the current animation frame.
     public void draw(SpriteBatch batch) {
-        Animation<TextureRegion> animation = getWalkingAnimation(); // Get the current walking animation based on the facing direction.
 
         TextureRegion currentFrame; // The current frame of the animation to draw.
 
-        if (moving) {
-            currentFrame = animation.getKeyFrame(animationTime, true); // Get the current frame of the walking animation if moving.
+        if (isHurting()) {
+            Animation<TextureRegion> hurtAnimation = getHurtAnimation(); // Get the current hurt animation based on the facing direction.
+            currentFrame = hurtAnimation.getKeyFrame(hurtAnimationTime, false); // Get the current frame of the hurt animation.
+            batch.setColor(1f, 0.6f, 0.6f, 1f); // Set the color to red for the hurt effect.
         } else {
-            currentFrame = animation.getKeyFrames()[0]; // Show the first frame of the walking animation if standing still.
+            Animation<TextureRegion> animation = getWalkingAnimation(); // Get the current walking animation based on the facing direction.
+
+            if (moving) {
+                currentFrame = animation.getKeyFrame(animationTime, true); // Get the current frame of the walking animation if moving.
+            } else {
+                currentFrame = animation.getKeyFrames()[0]; // Show the first frame of the walking animation if standing still.
+            }
+            batch.setColor(Color.WHITE); // Reset the color to white for normal drawing.
         }
+
         batch.draw(currentFrame, x, y, SIZE, SIZE); // Draw the current frame at the player's position with the specified size.
+        batch.setColor(Color.WHITE); // Reset the color to white after drawing.
+
     }
 
     // Get the x-coordinate of the player's center.
@@ -256,6 +312,9 @@ public class Player {
 
         health = Math.max(0, health - amount); // Reduce health by the damage amount, ensuring it doesn't go below 0.
         invincibilityTimer = INVINCIBILITY_DURATION; // Start the invincibility timer after taking damage.
+        hurtTimer = HURT_DURATION; // Start the hurt animation timer after taking damage.
+        hurtAnimationTime = 0f; // Reset the hurt animation time to start the hurt animation from the beginning.
+
         return true; // Damage was successfully taken.
     }
 
@@ -271,15 +330,26 @@ public class Player {
         health = Math.min(MAX_HEALTH, health + amount); // Increase health by the healing amount, ensuring it doesn't exceed the maximum.
     }
 
-    // Restore the player's health and clear damage protection.
+    // Reset the player's health to maximum and clear any temporary states like invincibility or knockback.
     public void resetHealth() {
 
         health = MAX_HEALTH;
         invincibilityTimer = 0f;
 
+        // Reset hurt animation state.
+        hurtTimer = 0f;
+        hurtAnimationTime = 0f;
+
+        // Reset knockback state.
+        knockbackTimeRemaining = 0f;
+        knockbackVelocityX = 0f;
+        knockbackVelocityY = 0f;
+
+        // Restore normal standing animation.
         moving = false;
         animationTime = 0f;
     }
+
 
     // Return true while temporary protection is active.
     public boolean isInvincible() {
@@ -299,6 +369,65 @@ public class Player {
     // Return the maximum permitted health.
     public int getMaxHealth() {
         return MAX_HEALTH;
+    }
+
+    // Set the hurt animations for each direction using the provided frames.
+    public void setHurtAnimations(TextureRegion[][] frames) {
+        hurtDown = createHurtAnimation(frames, 0);
+        hurtUp = createHurtAnimation(frames, 1);
+        hurtLeft = createHurtAnimation(frames, 2);
+        hurtRight = createHurtAnimation(frames, 3);
+    }
+
+    // Create a hurt animation for a specific direction using the provided frames.
+    private Animation<TextureRegion> createHurtAnimation(TextureRegion[][] frames, int column) {
+        return new Animation<>(HURT_FRAME_DURATION, frames[0][column], frames[1][column], frames[2][column]);
+    }
+
+    // Get the hurt animation based on the player's facing direction.
+    private Animation<TextureRegion> getHurtAnimation() {
+        switch (facing) {
+            case UP:
+                return hurtUp;
+            case LEFT:
+                return hurtLeft;
+            case RIGHT:
+                return hurtRight;
+            default:
+                return hurtDown; // Default to facing down.
+        }
+    }
+
+    // Return true if the player is currently in the hurt state.
+    public boolean isHurting() {
+        return hurtTimer > 0f;
+    }
+
+    // Apply knockback to the player based on the attacker's position.
+    public void applyKnockbackFrom(float attackerX, float attackerY) {
+
+        // Direction from the attacker to the player.
+        float dx = getCentreX() - attackerX;
+        float dy = getCentreY() - attackerY;
+
+        // Calculate the direction's length.
+        float length = (float) Math.sqrt(
+            dx * dx + dy * dy
+        );
+
+        // Handle an attacker at the same position.
+        if (length < 0.001f) {
+            dx = 1f;
+            dy = 0f;
+            length = 1f;
+        }
+
+        // Normalise and apply knockback speed.
+        knockbackVelocityX = dx / length * KNOCKBACK_SPEED;
+        knockbackVelocityY = dy / length * KNOCKBACK_SPEED;
+
+        // Start the knockback timer.
+        knockbackTimeRemaining = KNOCKBACK_DURATION;
     }
 
 }

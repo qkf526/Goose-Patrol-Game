@@ -25,8 +25,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // Object used to draw textures and sprites.
     private SpriteBatch batch;
 
-    // The texture for the player character to load the sprite sheet.
-    private Texture playerSheet;
+    // The texture for the player character to load the walk and hurt sprite sheet.
+    private Texture playerWalkSheet;
+    private Texture playerHurtSheet;
 
     // The width and height of the camera view used to view the game world.
     private static final float VIEW_WIDTH = 794f; 
@@ -49,16 +50,20 @@ public class GoosePatrolGame extends ApplicationAdapter {
     @Override
     public void create() {
 
-        // LOAD CHARACTER
+        // LOAD CHARACTER and ANIMATIONS
         batch = new SpriteBatch(); // Initialise the sprite batch for drawing textures.
 
-        playerSheet = new Texture(Gdx.files.internal("character/student_sheet.png")); // Load the sprite sheet for the player character.
+        playerWalkSheet = new Texture(Gdx.files.internal("character/student_walk.png")); // Load the sprite sheet for the player character.
+        playerHurtSheet = new Texture(Gdx.files.internal("character/student_hurt.png")); // Load the sprite sheet for the player character's hurt animation.
 
-        playerSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
+        playerWalkSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
+        playerHurtSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
 
-        TextureRegion[][] frames = TextureRegion.split(playerSheet, 300, 300); // Split the sprite sheet into individual frames of size 16x16pixels.
+        TextureRegion[][] walkFrames = TextureRegion.split(playerWalkSheet, 300, 300); // Split the walk sprite sheet into individual frames of size 16x16pixels.
+        TextureRegion[][] hurtFrames = TextureRegion.split(playerHurtSheet, 300, 300); // Split the hurt sprite sheet into individual frames of size 16x16pixels.
 
-        player = new Player(185f, 470f, frames); // Create a new player character at the starting position (185, 470).
+        player = new Player(185f, 470f, walkFrames); // Create a new player character at the starting position (185, 470).
+        player.setHurtAnimations(hurtFrames); // Set the hurt animations for the player character.
 
         // LOAD MAP
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
@@ -96,14 +101,21 @@ public class GoosePatrolGame extends ApplicationAdapter {
         // TEMPORARY TEST: Simulate a goose peck.
         if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
 
+            // Try to apply one point of damage.
             boolean damageApplied = player.takeDamage(1);
 
             if (damageApplied) {
-                System.out.println("Goose peck! Health: " +player.getHealth());
-            } else {
-                System.out.println("No damage applied.");
+
+                // Simulate a goose standing left of the player.
+                float attackerX = player.getCentreX() - 48f;
+                float attackerY = player.getCentreY();
+
+                // Push the student away from the simulated goose.
+                player.applyKnockbackFrom(attackerX, attackerY);
+                System.out.println("Goose peck! HP: " + player.getHealth());
             }
         }
+
 
         // TEMPORARY TEST: Heal the player.
         if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
@@ -183,7 +195,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
     public void dispose() {
         
         batch.dispose(); // Release the sprite batch resources.
-        playerSheet.dispose(); // Release the player sprite sheet resources.
+        playerWalkSheet.dispose(); // Release the player sprite sheet resources.
+        playerHurtSheet.dispose(); // Release the hurt sprite sheet resources.
 
         mapRenderer.dispose(); // Release the map renderer resources.
         campusMap.dispose(); // Release the campus map resources.
