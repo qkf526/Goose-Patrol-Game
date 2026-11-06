@@ -2,18 +2,27 @@ package com.goosepatrol.game;
 
 public class Bandage extends Item {
 
-    private final int healingAmount;
+    private final int healingAmount = 2;
 
     public Bandage() {
-        super("Bandage", "Restores player health");
-        healingAmount = 30;
+        super("Bandage", "Restores 2 health points");
     }
 
-    public int heal(int currentHealth, int maxHealth) {
-        if (maxHealth <= 0 || currentHealth < 0 || currentHealth >= maxHealth) {
-            return currentHealth;
+    public boolean use(Player player) {
+
+        if (player == null) {
+            return false;
         }
 
-        return Math.min(currentHealth + healingAmount, maxHealth);
+        if (player.isDefeated()) {
+            return false;
+        }
+
+        if (player.getHealth() >= player.getMaxHealth()) {
+            return false;
+        }
+
+        player.heal(healingAmount);
+        return true;
     }
 }

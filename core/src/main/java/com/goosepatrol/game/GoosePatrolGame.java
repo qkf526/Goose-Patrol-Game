@@ -3,24 +3,27 @@ package com.goosepatrol.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
-
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-
-import com.badlogic.gdx.Input;
 
 public class GoosePatrolGame extends ApplicationAdapter {
 
     // The student character
     private Player player;
+
+    // The player's inventory
+    private Inventory inventory;
+    private InventoryUI inventoryUI;
 
     // Object used to draw textures and sprites.
     private SpriteBatch batch;
@@ -65,6 +68,30 @@ public class GoosePatrolGame extends ApplicationAdapter {
         player = new Player(185f, 470f, walkFrames); // Create a new player character at the starting position (185, 470).
         player.setHurtAnimations(hurtFrames); // Set the hurt animations for the player character.
 
+        // Create the player's inventory
+        inventory = new Inventory();
+        //Add starting items
+        inventory.addItem(new Seeds(), 5);
+        inventory.addItem(new Flashlight(), 1);
+        inventory.addItem(new Bandage(), 2);
+        inventory.addItem(new AirHorn(), 1);
+        inventoryUI = new InventoryUI(inventory);
+        // Use the mouse wheel to switch inventory slots.
+        Gdx.input.setInputProcessor(new InputAdapter() {
+
+            @Override
+            public boolean scrolled(float amountX, float amountY) {
+
+                if (amountY > 0) {
+                    inventory.scrollSelection(1);
+                } else if (amountY < 0) {
+                    inventory.scrollSelection(-1);
+                }
+
+                return true;
+            }
+        });
+
         // LOAD MAP
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
         mapRenderer = new OrthogonalTiledMapRenderer(campusMap); // Create a renderer for the campus map.
@@ -94,6 +121,78 @@ public class GoosePatrolGame extends ApplicationAdapter {
     public void render() {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
+
+        // Select inventory slots using number keys 1-4.
+
+        // Select inventory slots using number keys 1-4.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+            inventory.selectSlot(0);
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+            inventory.selectSlot(1);
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+            inventory.selectSlot(2);
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+            inventory.selectSlot(3);
+        }
+
+        // Use the currently selected inventory item.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+
+            InventorySlot selectedSlot = inventory.getSelectedSlot();
+
+            if (selectedSlot != null) {
+
+                String itemName = selectedSlot.getItem().getName();
+
+                if (itemName.equals("Bandage")) {
+
+                    boolean used = inventory.useBandage(player);
+
+                    if (used) {
+                        System.out.println("Selected Bandage used!");
+                    } else {
+                        System.out.println("Cannot use Bandage.");
+                    }
+
+                    System.out.println("Current health: " + player.getHealth());
+                    System.out.println("Bandages remaining: "
+                        + inventory.getQuantity("Bandage"));
+
+                } else if (selectedSlot.getItem() instanceof Flashlight){
+                    Flashlight flashlight = (Flashlight) selectedSlot.getItem();
+                    flashlight.toggle();
+                    if (flashlight.isOn()){
+                        System.out.println("Flashlight ON");
+                    }else{
+                        System.out.println("Flashlight OFF");
+                    }
+
+} else if (selectedSlot.getItem() instanceof Seeds) {
+
+    Seeds seeds = (Seeds) selectedSlot.getItem();
+
+    if (selectedSlot.getQuantity() > 0) {
+
+        seeds.use();
+
+        inventory.useItem("Seeds");
+
+        System.out.println("Seeds remaining: "
+            + inventory.getQuantity("Seeds"));
+
+    } else {
+        System.out.println("No Seeds remaining!");
+    }
+
+} else {
+    System.out.println(itemName
+        + " is not connected to gameplay yet.");
+}
+
+            }
+        }
+
+
 
         player.updateMovement(deltaTime, collisions); // Update the student's movement based on input.
 
@@ -126,12 +225,22 @@ public class GoosePatrolGame extends ApplicationAdapter {
         }
 
         // BANDAGE TEMPORARY HEAL TEMPORARY TEST: Heal the player using bandage.
+        
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
 
-            player.heal(2);
-            System.out.println("Bandage used! Health restored by 2 points.");
-            System.out.println("Current health: " + player.getHealth());
+            boolean used = inventory.useBandage(player);
+
+        if (used) {
+            System.out.println("Bandage used successfully!");
+        } else {
+            System.out.println("Cannot use Bandage.");
         }
+
+        System.out.println("Current health: " + player.getHealth());
+        System.out.println("Bandages remaining: "
+            + inventory.getQuantity("Bandage"));
+}
+
 
 
         // SAUSAGE ROLL HEAL TEMPORARY TEST: Heal the player using sausage roll.
@@ -181,6 +290,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
         player.draw(batch); // Draw the player character using the sprite batch.
 
         batch.end(); // End drawing textures.
+
+        inventoryUI.draw(); // Draw the inventory UI on the top of the campus map.
     }
 
 
@@ -188,6 +299,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height); // Update the viewport with the new window size.
+        inventoryUI.resize(width, height);
     }
 
     // Release resources when the game is closed.
@@ -200,5 +312,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         mapRenderer.dispose(); // Release the map renderer resources.
         campusMap.dispose(); // Release the campus map resources.
+        inventoryUI.dispose();
     }
 }

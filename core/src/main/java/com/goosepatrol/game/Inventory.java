@@ -82,4 +82,17 @@ public class Inventory {
                 (selectedIndex - 1 + slots.size()) % slots.size();
         }
     }
+    public boolean useBandage(Player player){
+        if (player == null){
+            return false;
+        }
+        if (getQuantity("Bandage") <= 0){
+            return false;
+        }
+        Bandage bandage = new Bandage();
+        if (!bandage.use(player)){
+            return false;
+        }
+        return useItem("Bandage");
+    }
 }

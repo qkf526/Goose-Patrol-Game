@@ -57,24 +57,11 @@ public class InventoryTest {
             "Flashlight after second toggle: " + flashlightItem.isOn()
 );
 
+       
         Bandage bandage = new Bandage();
 
-        int playerHealth = 40;
-        int maxHealth = 100;
-
-        System.out.println("Health before: " + playerHealth);
-
-        playerHealth = bandage.heal(playerHealth, maxHealth);
-
-        System.out.println("Health after: " + playerHealth);
-
-        playerHealth = bandage.heal(90, maxHealth);
-
-        System.out.println("Health near maximum: " + playerHealth);
-
-        playerHealth = bandage.heal(100, maxHealth);
- 
-        System.out.println("Health when full: " + playerHealth);
+        System.out.println("Bandage created: " + bandage.getName());
+        System.out.println("Description: " + bandage.getDescription());
 
         AirHorn airHorn = new AirHorn();
 
