@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.Color;
+import java.util.EnumMap;
 
 
 public class Player {
@@ -25,7 +26,7 @@ public class Player {
     private static final float FEET_WIDTH = 24f;
     private static final float FEET_HEIGHT = 12f; 
 
-    private static final int MAX_HEALTH = 5; // The maximum health of the player.
+    private static final int MAX_HEALTH = 10; // The maximum health of the player.
     private static final float INVINCIBILITY_DURATION = 1f; // Duration of invincibility after taking damage in seconds.
     private int health = MAX_HEALTH; // The current health of the player.
     private float invincibilityTimer = 0f; // Timer to track invincibility duration after taking damage.
@@ -45,7 +46,7 @@ public class Player {
 
 
     // Duration of each frame in seconds.
-    private static final float FRAME_DURATION = 0.3f; 
+    private static final float FRAME_DURATION = 0.14f; 
 
     // The student's possible movement directions.
     private enum Direction {UP, DOWN, LEFT, RIGHT}
@@ -77,6 +78,22 @@ public class Player {
     private Animation<TextureRegion> walkLeft;
     private Animation<TextureRegion> walkRight;
 
+
+    // Stores the animations for each item type.
+    private final EnumMap<ItemType, ItemAnimationSet>
+        itemAnimations = new EnumMap<>(ItemType.class);
+
+    // Which item the student currently holds.
+    // null means no item is equipped.
+    private ItemType equippedItem = null;
+
+    // Whether an item-use action is playing.
+    private boolean usingItem = false;
+
+    // Time elapsed during the current item-use action.
+    private float itemUseTime = 0f;
+
+
     // Constructor: creates a player at a starting position.
     public Player(float x, float y, TextureRegion[][] frames) {
         this.x = x;
@@ -94,33 +111,55 @@ public class Player {
         return new Animation<>(FRAME_DURATION, frames[0][column], frames[1][column], frames[2][column], frames[3][column]);
     }
 
-    // Update the student's movement every frame.
-    public void updateMovement(float deltaTime, CollisionMap collisions) {
+    // Method to handle some gameplay animation logic
+    public void update(float deltaTime, CollisionMap collisions) {
 
-        // Reduce temporary protection time.
+        // 1. Update temporary invincibility.
         if (invincibilityTimer > 0f) {
-            invincibilityTimer = Math.max(0f, invincibilityTimer - deltaTime);
+
+            invincibilityTimer = Math.max(
+                0f,
+                invincibilityTimer - deltaTime
+            );
         }
 
-        // Update hurt animation time and prevent movement while hurt.
+        // 2. Hurt reaction has priority.
         if (isHurting()) {
+
             hurtAnimationTime += deltaTime;
 
-            // Apply knockback while its timer is active.
+            // Apply the existing knockback behaviour.
             if (knockbackTimeRemaining > 0f) {
 
-                float stepTime = Math.min(deltaTime, knockbackTimeRemaining); // Only use the remaining knockback time.
-                moveWithCollisions(knockbackVelocityX * stepTime, knockbackVelocityY * stepTime, collisions); // Move the player with collision detection during knockback.
-                knockbackTimeRemaining = Math.max(0f, knockbackTimeRemaining - stepTime); // Reduce the remaining knockback time.
+                float stepTime = Math.min(
+                    deltaTime,
+                    knockbackTimeRemaining
+                );
+
+                moveWithCollisions(
+                    knockbackVelocityX * stepTime,
+                    knockbackVelocityY * stepTime,
+                    collisions
+                );
+
+                knockbackTimeRemaining = Math.max(
+                    0f,
+                    knockbackTimeRemaining - stepTime
+                );
             }
 
-            hurtTimer = Math.max(0f, hurtTimer - deltaTime);
-            moving = false; 
+            hurtTimer = Math.max(
+                0f,
+                hurtTimer - deltaTime
+            );
+
+            moving = false;
             animationTime = 0f;
-            return; // Skip movement updates while hurt.
+
+            return;
         }
 
-        // Defeated players cannot move.
+        // 3. Defeated players cannot act.
         if (isDefeated()) {
 
             moving = false;
@@ -129,82 +168,38 @@ public class Player {
             return;
         }
 
+        // 4. Handle the current item-use action.
+        if (usingItem) {
 
-        float dx = 0f; // Change in x-coordinate.
-        float dy = 0f; // Change in y-coordinate.
+            // Only some items permit movement.
+            if (equippedItem.canMoveWhileUsing()) {
 
-        // Move right.
-        if (Gdx.input.isKeyPressed(Input.Keys.D) ||
-            Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            dx += 1f;
-        }
+                updatePlayerMovement(deltaTime, collisions);
 
-        // Move left.
-        if (Gdx.input.isKeyPressed(Input.Keys.A) ||
-            Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            dx -= 1f;
-        }
+            } else {
 
-        // Move up.
-        if (Gdx.input.isKeyPressed(Input.Keys.W) ||
-            Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            dy += 1f;
-        }
-
-        // Move down.
-        if (Gdx.input.isKeyPressed(Input.Keys.S) ||
-            Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            dy -= 1f;
-        }
-
-        boolean movementRequested = (dx != 0f || dy != 0f); // Check if the player is moving.
-
-        // Normalize the movement vector and update the player's position and facing direction if moving.
-        if (movementRequested) {
-
-            // Update the facing direction based on the movement vector.
-            if (dx != 0f) {
-                if (dx > 0f) {
-                    facing = Direction.RIGHT;
-                } else {
-                    facing = Direction.LEFT;
-                }
-            } else if (dy != 0f) {
-                if (dy > 0f) {
-                    facing = Direction.UP;
-                } else {
-                    facing = Direction.DOWN;
-                }
+                // Healing animations lock ordinary movement.
+                moving = false;
+                animationTime = 0f;
             }
 
-            // Calculate movement vector length.
-            float length = (float) Math.sqrt(dx * dx + dy * dy);
+            // Advance the use animation.
+            itemUseTime += deltaTime;
 
-            // Move at a consistent speed.
-            float movementX = (dx / length) * SPEED * deltaTime;
-            float movementY = (dy / length) * SPEED * deltaTime;
+            // Complete the action after its duration.
+            if (itemUseTime >= ItemAnimationSet.USE_DURATION) {
 
-            float oldX = x; // Store the old x-coordinate for collision checking.
-            float oldY = y; // Store the old y-coordinate for collision checking.
+                usingItem = false;
+                itemUseTime = 0f;
+            }
 
-            moveWithCollisions(movementX, movementY, collisions); // Move the player with collision detection.
-
-            moving = (x != oldX || y != oldY); // Check if the player actually moved after collision detection.
-
-            // Advance animation time while moving.
-            animationTime += deltaTime;
-
-        } else {
-            moving = false; // Player is not moving.
+            return;
         }
 
-        if (moving) {
-            animationTime += deltaTime; // Advance animation time while moving.
-        } else {
-            animationTime = 0f; // Reset animation time when standing still.
-        }
-
+        // 5. Normal movement when no item is being used.
+        updatePlayerMovement(deltaTime, collisions);
     }
+
 
     // Get the walking animation based on the player's facing direction.
     private Animation <TextureRegion> getWalkingAnimation() {
@@ -231,35 +226,94 @@ public class Player {
     }
 
 
-    // Set the student's x-coordinate when moving between maps.
-    public void setX(float x) {
-        this.x = x;
-    }
-
-    // Draw the player character using the provided sprite batch and the current animation frame.
     public void draw(SpriteBatch batch) {
 
-        TextureRegion currentFrame; // The current frame of the animation to draw.
+        TextureRegion currentFrame;
 
+        // Always begin with the normal drawing colour.
+        batch.setColor(Color.WHITE);
+
+        // PRIORITY 1: Hurt reaction.
         if (isHurting()) {
-            Animation<TextureRegion> hurtAnimation = getHurtAnimation(); // Get the current hurt animation based on the facing direction.
-            currentFrame = hurtAnimation.getKeyFrame(hurtAnimationTime, false); // Get the current frame of the hurt animation.
-            batch.setColor(1f, 0.6f, 0.6f, 1f); // Set the color to red for the hurt effect.
-        } else {
-            Animation<TextureRegion> animation = getWalkingAnimation(); // Get the current walking animation based on the facing direction.
 
-            if (moving) {
-                currentFrame = animation.getKeyFrame(animationTime, true); // Get the current frame of the walking animation if moving.
-            } else {
-                currentFrame = animation.getKeyFrames()[0]; // Show the first frame of the walking animation if standing still.
-            }
-            batch.setColor(Color.WHITE); // Reset the color to white for normal drawing.
+            currentFrame = getHurtAnimation().getKeyFrame(
+                hurtAnimationTime,
+                false
+            );
+
+            // Red tint for damage.
+            batch.setColor(1f, 0.6f, 0.6f, 1f);
+
         }
 
-        batch.draw(currentFrame, x, y, SIZE, SIZE); // Draw the current frame at the player's position with the specified size.
-        batch.setColor(Color.WHITE); // Reset the color to white after drawing.
+        // PRIORITY 2: Defeated.
+        else if (isDefeated()) {
 
+            currentFrame = getWalkingAnimation()
+                .getKeyFrames()[0];
+
+        }
+
+        // PRIORITY 3: Using an item.
+        else if (usingItem) {
+
+            ItemAnimationSet animations =
+                itemAnimations.get(equippedItem);
+
+            currentFrame = animations.getUsingFrame(
+                getFacingColumn(),
+                moving,
+                itemUseTime
+            );
+
+        }
+
+        // PRIORITY 4: Holding an item.
+        else if (equippedItem != null) {
+
+            ItemAnimationSet animations =
+                itemAnimations.get(equippedItem);
+
+            currentFrame = animations.getHoldingFrame(
+                getFacingColumn(),
+                moving,
+                animationTime
+            );
+
+        }
+
+        // PRIORITY 5: Ordinary walking or idle.
+        else {
+
+            Animation<TextureRegion> animation =
+                getWalkingAnimation();
+
+            if (moving) {
+
+                currentFrame = animation.getKeyFrame(
+                    animationTime,
+                    true
+                );
+
+            } else {
+
+                currentFrame = animation.getKeyFrames()[0];
+            }
+        }
+
+        // Draw the selected frame.
+        batch.draw(
+            currentFrame,
+            x,
+            y,
+            SIZE,
+            SIZE
+        );
+
+        // Restore the SpriteBatch colour.
+        batch.setColor(Color.WHITE);
     }
+
 
     // Get the x-coordinate of the player's center.
     public float getCentreX() {
@@ -316,6 +370,12 @@ public class Player {
             return false; // No damage taken if the amount is non-positive or the player is invulnerable.
         }
 
+        // Cancel an item-use animation after a successful hit.
+        if (usingItem) {
+            usingItem = false;
+            itemUseTime = 0f;
+        }
+
         health = Math.max(0, health - amount); // Reduce health by the damage amount, ensuring it doesn't go below 0.
         invincibilityTimer = INVINCIBILITY_DURATION; // Start the invincibility timer after taking damage.
         hurtTimer = HURT_DURATION; // Start the hurt animation timer after taking damage.
@@ -354,6 +414,9 @@ public class Player {
         // Restore normal standing animation.
         moving = false;
         animationTime = 0f;
+
+        usingItem = false;
+        itemUseTime = 0f;
     }
 
 
@@ -435,5 +498,157 @@ public class Player {
         // Start the knockback timer.
         knockbackTimeRemaining = KNOCKBACK_DURATION;
     }
+
+    public void registerItemAnimations(ItemType type, ItemAnimationSet animations) {
+        itemAnimations.put(type, animations);
+    }
+
+    
+    // Equip a particular item.
+    public boolean equipItem(ItemType type) {
+
+        // Equipment cannot change during these states.
+        if (isHurting() || isDefeated() || usingItem) {
+            return false;
+        }
+
+        // The item must have loaded animations.
+        if (!itemAnimations.containsKey(type)) {
+            return false;
+        }
+
+        equippedItem = type;
+        animationTime = 0f;
+
+        return true;
+    }
+
+    // Put away the currently equipped item.
+    public void unequipItem() {
+
+        if (isHurting() || isDefeated() || usingItem) {
+            return;
+        }
+
+        equippedItem = null;
+        animationTime = 0f;
+    }
+
+    // Start using the equipped item.
+    public boolean startUsingItem() {
+
+        if (equippedItem == null || usingItem || isHurting() || isDefeated()) {
+            return false;
+        }
+
+        usingItem = true;
+        itemUseTime = 0f;
+
+        return true;
+    }
+
+    public ItemType getEquippedItem() {
+        return equippedItem;
+    }
+
+    public boolean isUsingItem() {
+        return usingItem;
+    }
+
+
+    // Update the player's movement based on input and handle collisions with obstacles.
+    private void updatePlayerMovement(float deltaTime, CollisionMap collisions) {
+
+        float dx = 0f;
+        float dy = 0f;
+
+        // Horizontal movement input.
+        if (Gdx.input.isKeyPressed(Input.Keys.D) ||
+            Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            dx += 1f;
+        }
+
+        if (Gdx.input.isKeyPressed(Input.Keys.A) ||
+            Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+            dx -= 1f;
+        }
+
+        // Vertical movement input.
+        if (Gdx.input.isKeyPressed(Input.Keys.W) ||
+            Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            dy += 1f;
+        }
+
+        if (Gdx.input.isKeyPressed(Input.Keys.S) ||
+            Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+            dy -= 1f;
+        }
+
+        // No direction requested.
+        if (dx == 0f && dy == 0f) {
+            moving = false;
+            animationTime = 0f;
+            return;
+        }
+
+        // Update facing direction.
+        if (dx > 0f) {
+            facing = Direction.RIGHT;
+        } else if (dx < 0f) {
+            facing = Direction.LEFT;
+        } else if (dy > 0f) {
+            facing = Direction.UP;
+        } else {
+            facing = Direction.DOWN;
+        }
+
+        // Normalise diagonal movement.
+        float length = (float) Math.sqrt(
+            dx * dx + dy * dy
+        );
+
+        float moveX = (dx / length) * SPEED * deltaTime;
+        float moveY = (dy / length) * SPEED * deltaTime;
+
+        // Remember the previous position.
+        float oldX = x;
+        float oldY = y;
+
+        // Reuse Lesson 8 collision detection.
+        moveWithCollisions(
+            moveX,
+            moveY,
+            collisions
+        );
+
+        // Did the player actually move?
+        moving = (x != oldX || y != oldY);
+
+        if (moving) {
+            animationTime += deltaTime;
+        } else {
+            animationTime = 0f;
+        }
+    }
+
+    // Get the column index for the facing direction, used for selecting the correct animation frame.
+    private int getFacingColumn() {
+
+        switch (facing) {
+
+            case UP:
+                return 1;
+
+            case LEFT:
+                return 2;
+
+            case RIGHT:
+                return 3;
+
+            default:
+                return 0; // DOWN
+        }
+    }
+
 
 }
