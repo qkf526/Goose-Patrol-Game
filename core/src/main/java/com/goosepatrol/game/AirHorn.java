@@ -1,28 +1,24 @@
 package com.goosepatrol.game;
 
 public class AirHorn extends Item {
-
-    private final float effectRadius;
+    private final float effectRadius = 100f;
 
     public AirHorn() {
-        super("Air Horn", "Scares nearby geese away");
-        effectRadius = 100f;
+        super(ItemType.AIR_HORN, "Air Horn", "Scares nearby geese away");
     }
 
-    public boolean isGooseInRange(
-        float playerX,
-        float playerY,
-        float gooseX,
-        float gooseY
-    ) {
-        float distanceX = gooseX - playerX;
-        float distanceY = gooseY - playerY;
+    //distance calculation for future Goose AI.
+    public boolean isGooseInRange(float playerX, float playerY,
+                                  float gooseX, float gooseY) {
+        float dx = gooseX - playerX;
+        float dy = gooseY - playerY;
+        return dx * dx + dy * dy <= effectRadius * effectRadius;
+    }
 
-        float distance = (float) Math.sqrt(
-            distanceX * distanceX +
-            distanceY * distanceY
-        );
-
-        return distance <= effectRadius;
+    @Override
+    public boolean applyEffect(Player player) {
+        if (player == null || player.isDefeated()) return false;
+        System.out.println("Air Horn used. Goose scare effect will be connected later.");
+        return true;
     }
 }

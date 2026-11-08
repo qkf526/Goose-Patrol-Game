@@ -146,4 +146,3 @@ public class ItemAnimationSet {
         return animation.getKeyFrame(useTime, false);
     }
 }
-
