@@ -93,6 +93,8 @@ public class Player {
     // Time elapsed during the current item-use action.
     private float itemUseTime = 0f;
 
+    // The item that was just used and completed its action.
+    private ItemType completedItemUse = null;
 
     // Constructor: creates a player at a starting position.
     public Player(float x, float y, TextureRegion[][] frames) {
@@ -188,6 +190,8 @@ public class Player {
 
             // Complete the action after its duration.
             if (itemUseTime >= ItemAnimationSet.USE_DURATION) {
+
+                completedItemUse = equippedItem;
 
                 usingItem = false;
                 itemUseTime = 0f;
@@ -401,6 +405,7 @@ public class Player {
 
         health = MAX_HEALTH;
         invincibilityTimer = 0f;
+        completedItemUse = null; // Clear the completed item use state.
 
         // Reset hurt animation state.
         hurtTimer = 0f;
@@ -556,7 +561,7 @@ public class Player {
     }
 
 
-    // Update the player's movement based on input and handle collisions with obstacles.
+
     private void updatePlayerMovement(float deltaTime, CollisionMap collisions) {
 
         float dx = 0f;
@@ -631,7 +636,7 @@ public class Player {
         }
     }
 
-    // Get the column index for the facing direction, used for selecting the correct animation frame.
+
     private int getFacingColumn() {
 
         switch (facing) {
@@ -648,6 +653,16 @@ public class Player {
             default:
                 return 0; // DOWN
         }
+    }
+
+    // Return the item that was just used and completed its action, or null if no item use has completed.
+    public ItemType consumeCompletedItemUse() {
+
+        ItemType finished = completedItemUse;
+
+        completedItemUse = null;
+
+        return finished;
     }
 
 

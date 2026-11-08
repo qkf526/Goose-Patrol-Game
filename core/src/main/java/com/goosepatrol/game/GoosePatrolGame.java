@@ -57,6 +57,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private BitmapFont healthFont;
     private Texture hudPanel;
 
+    private InventoryController inventoryController;
+
     // Called when the application is first created. Used to initialize game resources.
     @Override
     public void create() {
@@ -93,6 +95,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
         registerItem(ItemType.BANDAGE, "bandage", 313, false);
         registerItem(ItemType.SAUSAGE_ROLL, "sausage_roll", 313, false);
 
+        inventoryController = new InventoryController(player); // Create an inventory controller for the player.
+
 
         // LOAD MAP
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
@@ -124,9 +128,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
 
-        handleItemControls(); // Handle input for item selection and usage.
+        inventoryController.handleInput(); // Handle input for item selection and usage.
 
         player.update(deltaTime, collisions); // Update the student's movement based on input.
+
+        inventoryController.updateAfterPlayer(); // Update the inventory controller after the player's state has been updated.
 
 
         // TEMPORARY TEST: Simulate a goose peck.
@@ -145,32 +151,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
                 player.applyKnockbackFrom(attackerX, attackerY);
                 System.out.println("Goose peck! HP: " + player.getHealth());
             }
-        }
-
-
-        // TEMPORARY TEST: Heal the player.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-
-            player.heal(1);
-
-            System.out.println("Healed by 1 point. Current health: " + player.getHealth());
-        }
-
-        // BANDAGE TEMPORARY HEAL TEMPORARY TEST: Heal the player using bandage.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
-
-            player.heal(2);
-            System.out.println("Bandage used! Health restored by 2 points.");
-            System.out.println("Current health: " + player.getHealth());
-        }
-
-
-        // SAUSAGE ROLL HEAL TEMPORARY TEST: Heal the player using sausage roll.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
-
-            player.resetHealth();
-            System.out.println("Sausage roll consumed! Health restored to maximum.");
-            System.out.println("Current health: " + player.getHealth());
         }
 
         // TEMPORARY TEST: Restart after defeat.
@@ -214,6 +194,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
         batch.end(); // End drawing textures.
 
         drawHealthHUD(); // Draw the player's health on the HUD.
+
+        inventoryController.draw();
     }
 
 
@@ -257,35 +239,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         player.registerItemAnimations(item,animations);
     }
 
-    // Handle input for item selection and usage.
-    private void handleItemControls() {
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-            player.equipItem(ItemType.SEEDS);
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-            player.equipItem(ItemType.AIR_HORN);
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-            player.equipItem(ItemType.BANDAGE);
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-            player.equipItem(ItemType.SAUSAGE_ROLL);
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_0)) {
-            player.unequipItem();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            player.startUsingItem();
-        }
-    }
-
-    // Draw the player's health on the HUD.
+    // Draw the player's health on the HUD and the item counter below it.
     private void drawHealthHUD() {
 
         // Position the HUD near the top-left corner of the camera's visible area.
@@ -299,10 +253,16 @@ public class GoosePatrolGame extends ApplicationAdapter {
         batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
-        batch.draw(hudPanel, hudX - 10f, hudY - 8f, 150f, 42f);
+        batch.draw(hudPanel, hudX - 10f, hudY - 37f, 160, 100);
         batch.draw(heartIcon,hudX,hudY,28f,28f);
         healthFont.setColor(Color.WHITE);
         healthFont.draw(batch,healthText, hudX + 36f,hudY + 22f);
+
+        // Draw the item counter below the health HUD.
+        int itemsUsed = inventoryController.getInventory().getTotalItemsUsed();
+        String itemsUsedText = "Items used: " + itemsUsed;
+        healthFont.setColor(Color.WHITE);
+        healthFont.draw(batch,itemsUsedText,hudX,hudY - 10f);
 
         batch.end();
     }
@@ -311,6 +271,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height); // Update the viewport with the new window size.
+        inventoryController.resize(width, height); // Update the inventory controller with the new window size.
     }
 
     // Release resources when the game is closed.
@@ -331,5 +292,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
         heartIcon.dispose(); // Release the heart icon texture resources.
         healthFont.dispose(); // Release the font resources.
         hudPanel.dispose(); // Release the HUD panel texture resources.
+        inventoryController.dispose(); // Release the inventory controller resources.
     }
 }
