@@ -16,6 +16,11 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.Color;
+
 public class GoosePatrolGame extends ApplicationAdapter {
 
     // The student character
@@ -31,6 +36,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // The texture for the player character to load the walk and hurt sprite sheet.
     private Texture playerWalkSheet;
     private Texture playerHurtSheet;
+
+    // Stores all item textures for cleanup.
+    private final Array<Texture> itemTextures = new Array<>();
 
     // The width and height of the camera view used to view the game world.
     private static final float VIEW_WIDTH = 794f; 
@@ -49,13 +57,27 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private int mapWidth;
     private int mapHeight;
 
+    // The Health HUD.
+    private Texture heartIcon;
+    private BitmapFont healthFont;
+    private Texture hudPanel;
+
     // Called when the application is first created. Used to initialize game resources.
     @Override
     public void create() {
-
-        // LOAD CHARACTER and ANIMATIONS
+        
         batch = new SpriteBatch(); // Initialise the sprite batch for drawing textures.
 
+        //HEART ICON AND HEALTH FONT
+        heartIcon = new Texture(Gdx.files.internal("ui/heart_full.png")); // Load the heart image.
+        heartIcon.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);  // Keep the pixel-art heart sharp.
+        healthFont = new BitmapFont(); // Create the font for displaying health.
+        healthFont.getData().setScale(1.5f); // Make the text a little larger.
+        healthFont.setColor(Color.WHITE); // Set the text colour to white.
+        hudPanel = new Texture(Gdx.files.internal("ui/hud_panel.png")); // Load the HUD panel image.
+        hudPanel.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Keep the pixel-art HUD panel sharp.
+
+        // LOAD CHARACTER and ANIMATIONS
         playerWalkSheet = new Texture(Gdx.files.internal("character/student_walk.png")); // Load the sprite sheet for the player character.
         playerHurtSheet = new Texture(Gdx.files.internal("character/student_hurt.png")); // Load the sprite sheet for the player character's hurt animation.
 
@@ -68,29 +90,14 @@ public class GoosePatrolGame extends ApplicationAdapter {
         player = new Player(185f, 470f, walkFrames); // Create a new player character at the starting position (185, 470).
         player.setHurtAnimations(hurtFrames); // Set the hurt animations for the player character.
 
-        // Create the player's inventory
-        inventory = new Inventory();
-        //Add starting items
-        inventory.addItem(new Seeds(), 5);
-        inventory.addItem(new Flashlight(), 1);
-        inventory.addItem(new Bandage(), 2);
-        inventory.addItem(new AirHorn(), 1);
-        inventoryUI = new InventoryUI(inventory);
-        // Use the mouse wheel to switch inventory slots.
-        Gdx.input.setInputProcessor(new InputAdapter() {
 
-            @Override
-            public boolean scrolled(float amountX, float amountY) {
+        // Register animation sets for all four items.
+        // These frame sizes assume 300x300 cells.
+        registerItem(ItemType.SEEDS, "seeds", 313, true);
+        registerItem(ItemType.AIR_HORN, "air_horn", 313, true);
+        registerItem(ItemType.BANDAGE, "bandage", 313, false);
+        registerItem(ItemType.SAUSAGE_ROLL, "sausage_roll", 313, false);
 
-                if (amountY > 0) {
-                    inventory.scrollSelection(1);
-                } else if (amountY < 0) {
-                    inventory.scrollSelection(-1);
-                }
-
-                return true;
-            }
-        });
 
         // LOAD MAP
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
@@ -122,79 +129,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
 
-        // Select inventory slots using number keys 1-4.
+        handleItemControls(); // Handle input for item selection and usage.
 
-        // Select inventory slots using number keys 1-4.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-            inventory.selectSlot(0);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-            inventory.selectSlot(1);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-            inventory.selectSlot(2);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-            inventory.selectSlot(3);
-        }
-
-        // Use the currently selected inventory item.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-
-            InventorySlot selectedSlot = inventory.getSelectedSlot();
-
-            if (selectedSlot != null) {
-
-                String itemName = selectedSlot.getItem().getName();
-
-                if (itemName.equals("Bandage")) {
-
-                    boolean used = inventory.useBandage(player);
-
-                    if (used) {
-                        System.out.println("Selected Bandage used!");
-                    } else {
-                        System.out.println("Cannot use Bandage.");
-                    }
-
-                    System.out.println("Current health: " + player.getHealth());
-                    System.out.println("Bandages remaining: "
-                        + inventory.getQuantity("Bandage"));
-
-                } else if (selectedSlot.getItem() instanceof Flashlight){
-                    Flashlight flashlight = (Flashlight) selectedSlot.getItem();
-                    flashlight.toggle();
-                    if (flashlight.isOn()){
-                        System.out.println("Flashlight ON");
-                    }else{
-                        System.out.println("Flashlight OFF");
-                    }
-
-} else if (selectedSlot.getItem() instanceof Seeds) {
-
-    Seeds seeds = (Seeds) selectedSlot.getItem();
-
-    if (selectedSlot.getQuantity() > 0) {
-
-        seeds.use();
-
-        inventory.useItem("Seeds");
-
-        System.out.println("Seeds remaining: "
-            + inventory.getQuantity("Seeds"));
-
-    } else {
-        System.out.println("No Seeds remaining!");
-    }
-
-} else {
-    System.out.println(itemName
-        + " is not connected to gameplay yet.");
-}
-
-            }
-        }
-
-
-
-        player.updateMovement(deltaTime, collisions); // Update the student's movement based on input.
+        player.update(deltaTime, collisions); // Update the student's movement based on input.
 
 
         // TEMPORARY TEST: Simulate a goose peck.
@@ -291,9 +228,99 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         batch.end(); // End drawing textures.
 
-        inventoryUI.draw(); // Draw the inventory UI on the top of the campus map.
+        drawHealthHUD(); // Draw the player's health on the HUD.
     }
 
+
+    private TextureRegion[][] loadItemFrames(String path, int frameSize) {
+
+        // Load the image file.
+        Texture texture = new Texture(Gdx.files.internal(path) ); 
+
+        // Keep enlarged pixel art sharp.
+        texture.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);
+
+        // Remember this texture for disposal.
+        itemTextures.add(texture);
+
+        // Split into equally sized frames.
+        return TextureRegion.split(texture, frameSize, frameSize);
+    }
+
+    // Register an item with its animation set and give it to the player.
+    private void registerItem(ItemType item, String filenamePrefix, int frameSize, boolean hasMovingUseAnimation) {
+
+        String basePath = "character/items/" + filenamePrefix;
+
+        // Load holding frames.
+        TextureRegion[][] holdingFrames = loadItemFrames(basePath + "_hold.png",frameSize);
+
+        // Load standing-use frames.
+        TextureRegion[][] standingFrames = loadItemFrames(basePath + "_use_still.png",frameSize);
+
+        // Load moving-use frames when needed.
+        TextureRegion[][] movingFrames = null;
+
+        if (hasMovingUseAnimation) {
+            movingFrames = loadItemFrames(basePath + "_use_walk.png",frameSize);
+        }
+
+        // Create the animation set.
+        ItemAnimationSet animations = new ItemAnimationSet(holdingFrames, standingFrames, movingFrames);
+
+        // Give the animations to our Player.
+        player.registerItemAnimations(item,animations);
+    }
+
+    // Handle input for item selection and usage.
+    private void handleItemControls() {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+            player.equipItem(ItemType.SEEDS);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+            player.equipItem(ItemType.AIR_HORN);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+            player.equipItem(ItemType.BANDAGE);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+            player.equipItem(ItemType.SAUSAGE_ROLL);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_0)) {
+            player.unequipItem();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            player.startUsingItem();
+        }
+    }
+
+    // Draw the player's health on the HUD.
+    private void drawHealthHUD() {
+
+        // Position the HUD near the top-left corner of the camera's visible area.
+        float hudX = camera.position.x - viewport.getWorldWidth() / 2f + 20f;
+        float hudY = camera.position.y + viewport.getWorldHeight() / 2f - 48f;
+
+        // Create the health text.
+        String healthText = "HP: " + player.getHealth() + "/" + player.getMaxHealth();
+
+        // Use the same camera as our campus.
+        batch.setProjectionMatrix(camera.combined);
+
+        batch.begin();
+        batch.draw(hudPanel, hudX - 10f, hudY - 8f, 150f, 42f);
+        batch.draw(heartIcon,hudX,hudY,28f,28f);
+        healthFont.setColor(Color.WHITE);
+        healthFont.draw(batch,healthText, hudX + 36f,hudY + 22f);
+
+        batch.end();
+    }
 
     // Handle window resizing events.
     @Override
@@ -312,6 +339,13 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         mapRenderer.dispose(); // Release the map renderer resources.
         campusMap.dispose(); // Release the campus map resources.
-        inventoryUI.dispose();
+
+        for (Texture texture : itemTextures) {
+            texture.dispose();
+        }
+
+        heartIcon.dispose(); // Release the heart icon texture resources.
+        healthFont.dispose(); // Release the font resources.
+        hudPanel.dispose(); // Release the HUD panel texture resources.
     }
 }
