@@ -15,8 +15,8 @@ public class InventoryController implements Disposable {
         this.inventory = new Inventory();
 
         // Preload the player's inventory with some items.
-        inventory.addItem(new Seeds(), 5);
-        inventory.addItem(new AirHorn(), 2);
+        inventory.addItem(new Seeds(), 6);
+        inventory.addItem(new AirHorn(), 3);
         inventory.addItem(new Bandage(), 2);
         inventory.addItem(new SausageRoll(), 2);
 
@@ -59,20 +59,37 @@ public class InventoryController implements Disposable {
     }
 
     /** Call immediately AFTER player.update(), once per game frame. */
-    public void updateAfterPlayer() {
-        ItemType finished = player.consumeCompletedItemUse();
-        if (finished == null) return;
 
-        boolean applied = inventory.completeUse(finished, player);
-        if (applied) {
-            System.out.println(finished + " completed; remaining=" +
-                inventory.getQuantity(finished) +
-                ", total used=" + inventory.getTotalItemsUsed());
-            if (inventory.getQuantity(finished) == 0) player.unequipItem();
-        } else {
-            System.out.println("No item consumed: unavailable or effect not allowed.");
+    public ItemType updateAfterPlayer() {
+
+        // Get the item whose animation just finished.
+        ItemType finished = player.consumeCompletedItemUse();
+
+        // No completed action this frame.
+        if (finished == null) {
+            return null;
         }
+
+        // Apply the item's existing effect and
+        // consume one item from the inventory.
+        boolean applied = inventory.completeUse(
+            finished,
+            player
+        );
+
+        if (!applied) {
+            return null;
+        }
+
+        // Put the item away when its stock reaches zero.
+        if (inventory.getQuantity(finished) == 0) {
+            player.unequipItem();
+        }
+
+        // Report which item was successfully used.
+        return finished;
     }
+
 
     public void draw() { ui.draw(); }
     public void resize(int width, int height) { ui.resize(width, height); }

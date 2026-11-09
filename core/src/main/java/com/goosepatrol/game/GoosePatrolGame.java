@@ -57,7 +57,14 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private BitmapFont healthFont;
     private Texture hudPanel;
 
+    // The inventory controller for managing the player's inventory and item usage.
     private InventoryController inventoryController;
+
+    // The GooseWaveManager for managing the waves of geese and game state.
+    private GooseWaveManager gooseWaves;
+    private GooseHUD gooseHUD;
+    private Texture gooseTexture;
+    private Texture seedTexture;
 
     // Called when the application is first created. Used to initialize game resources.
     @Override
@@ -119,6 +126,18 @@ public class GoosePatrolGame extends ApplicationAdapter {
         viewport = new FitViewport(VIEW_WIDTH, VIEW_HEIGHT, camera); // Create a viewport to maintain aspect ratio and fit the camera view to the window size.
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Update the viewport with the current window size.
 
+        //LOAD GOOSE, WAVE MANAGER AND HUD
+        gooseWaves = new GooseWaveManager(mapWidth,mapHeight );
+        gooseHUD = new GooseHUD();
+
+        // Load temporary goose graphics.
+        gooseTexture = new Texture(Gdx.files.internal("character/goose.png"));
+        seedTexture = new Texture(Gdx.files.internal("effects/seeds_patch.png"));
+
+        // Preserve sharp pixel-art edges.
+        gooseTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        seedTexture.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);
+
         System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
     }
 
@@ -130,38 +149,58 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         inventoryController.handleInput(); // Handle input for item selection and usage.
 
-        player.update(deltaTime, collisions); // Update the student's movement based on input.
 
-        inventoryController.updateAfterPlayer(); // Update the inventory controller after the player's state has been updated.
+        // ENTER starts/resumes; ESC pauses/resumes.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 
-
-        // TEMPORARY TEST: Simulate a goose peck.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-
-            // Try to apply one point of damage.
-            boolean damageApplied = player.takeDamage(1);
-
-            if (damageApplied) {
-
-                // Simulate a goose standing left of the player.
-                float attackerX = player.getCentreX() - 48f;
-                float attackerY = player.getCentreY();
-
-                // Push the student away from the simulated goose.
-                player.applyKnockbackFrom(attackerX, attackerY);
-                System.out.println("Goose peck! HP: " + player.getHealth());
-            }
+            gooseWaves.togglePause();
         }
 
-        // TEMPORARY TEST: Restart after defeat.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+        // Restart a completed match.
+        if (gooseWaves.isFinished() &&
+            Gdx.input.isKeyJustPressed(Input.Keys.R)) {
 
-            if (!player.isDefeated()) {
-                System.out.println("Player is not defeated. Can't reset health.");
-            } else {
-                player.resetHealth();
-                System.out.println("Player health reset!");
+            restartMatch();
+        }
+
+        // Only update gameplay while playing.
+        if (gooseWaves.isPlaying()) {
+
+            inventoryController.handleInput();
+
+            player.update(deltaTime, collisions);
+
+            // Which item was successfully used?
+            ItemType used =
+                inventoryController.updateAfterPlayer();
+
+            if (used == ItemType.SEEDS ||
+                used == ItemType.AIR_HORN) {
+
+                // Calculate the player's ground position.
+                com.badlogic.gdx.math.Rectangle feet =
+                    player.getFeetBounds();
+
+                float groundX =
+                    feet.x + feet.width / 2f;
+
+                float groundY =
+                    feet.y + feet.height / 2f;
+
+                if (used == ItemType.SEEDS) {
+                    gooseWaves.useSeeds(groundX, groundY);
+                } else {
+                    gooseWaves.useAirHorn(groundX, groundY);
+                }
             }
+
+            // Update the clock, geese and waves.
+            gooseWaves.update(
+                deltaTime,
+                player,
+                collisions
+            );
         }
 
         player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
@@ -187,15 +226,42 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         batch.setProjectionMatrix(camera.combined); // Set the sprite batch to use the camera's combined projection and view matrix.
 
-        batch.begin(); // Begin drawing textures.
 
-        player.draw(batch); // Draw the player character using the sprite batch.
+        batch.begin();
 
-        batch.end(); // End drawing textures.
+        com.badlogic.gdx.math.Rectangle feet =
+            player.getFeetBounds();
+
+        float playerGroundY =
+            feet.y + feet.height / 2f;
+
+        // Draw seeds on the ground.
+        gooseWaves.drawSeedPatches(batch, seedTexture);
+
+        // Draw geese behind the player.
+        gooseWaves.drawGeeseBehindPlayer(
+            batch,
+            gooseTexture,
+            playerGroundY
+        );
+
+        // Draw the student.
+        player.draw(batch);
+
+        // Draw geese in front of the player.
+        gooseWaves.drawGeeseInFrontOfPlayer(
+            batch,
+            gooseTexture,
+            playerGroundY
+        );
+
+        batch.end();
 
         drawHealthHUD(); // Draw the player's health on the HUD.
 
         inventoryController.draw();
+
+        gooseHUD.draw(gooseWaves); // Draw the goose wave HUD.
     }
 
 
@@ -267,11 +333,21 @@ public class GoosePatrolGame extends ApplicationAdapter {
         batch.end();
     }
 
+    private void restartMatch() {
+        gooseWaves.reset();
+        player.resetToStart(185f, 470f);
+
+        // Recreate the initial stock and clear the items-used counter.
+        inventoryController.dispose();
+        inventoryController = new InventoryController(player);
+}
+
     // Handle window resizing events.
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height); // Update the viewport with the new window size.
         inventoryController.resize(width, height); // Update the inventory controller with the new window size.
+        if (gooseHUD != null) gooseHUD.resize(width, height);
     }
 
     // Release resources when the game is closed.
@@ -293,5 +369,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
         healthFont.dispose(); // Release the font resources.
         hudPanel.dispose(); // Release the HUD panel texture resources.
         inventoryController.dispose(); // Release the inventory controller resources.
+
+        gooseHUD.dispose();
+        gooseTexture.dispose();
+        seedTexture.dispose();
     }
 }
