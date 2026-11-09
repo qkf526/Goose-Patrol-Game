@@ -1,6 +1,4 @@
 package com.goosepatrol.game;
-
-
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -17,8 +15,7 @@ public class GoosePatrolGame extends Game
     public BitmapFont font;
 
     @Override
-    public void create()
-    {
+    public void create() {
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(2f); // enlarge text
@@ -31,10 +28,8 @@ public class GoosePatrolGame extends Game
      * manually release batch and font too
      */
     @Override
-    public void dispose()
-    {
-        if (getScreen() != null)
-        {
+    public void dispose() {
+        if (getScreen() != null) {
             getScreen().dispose();
         }
 

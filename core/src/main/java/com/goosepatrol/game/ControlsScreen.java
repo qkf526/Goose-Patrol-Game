@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 public class ControlsScreen implements Screen {
@@ -27,6 +28,16 @@ public class ControlsScreen implements Screen {
     @Override
     public void render(float delta)
     {
+        // makes drawing cover whole window again
+        Gdx.gl.glViewport(0,0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+
+        // setToOrtho2d() builds projection, 1 unit = 1 pixel (origin at bottom left)
+        Matrix4 screenMatrix = new Matrix4().setToOrtho2D(0,0,Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        // text and rectangles will be aligned
+        game.batch.setProjectionMatrix(screenMatrix);
+        shape.setProjectionMatrix(screenMatrix);
+
+
         ScreenUtils.clear(0.1f, 0.15f, 0.1f, 1f);
 
         float mousex = Gdx.input.getX();
