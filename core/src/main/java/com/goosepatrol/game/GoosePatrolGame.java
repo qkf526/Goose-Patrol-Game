@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
-
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
@@ -63,7 +63,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
     // The GooseWaveManager for managing the waves of geese and game state.
     private GooseWaveManager gooseWaves;
     private GooseHUD gooseHUD;
-    private Texture gooseTexture;
+    private GooseAnimations gooseAnimations;
     private Texture seedTexture;
 
     // Called when the application is first created. Used to initialize game resources.
@@ -131,11 +131,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
         gooseHUD = new GooseHUD();
 
         // Load temporary goose graphics.
-        gooseTexture = new Texture(Gdx.files.internal("character/goose.png"));
+        gooseAnimations = new GooseAnimations();
         seedTexture = new Texture(Gdx.files.internal("effects/seeds_patch.png"));
 
         // Preserve sharp pixel-art edges.
-        gooseTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         seedTexture.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);
 
         System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
@@ -229,29 +228,31 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         batch.begin();
 
-        com.badlogic.gdx.math.Rectangle feet =
-            player.getFeetBounds();
+        Rectangle feet = player.getFeetBounds();
 
         float playerGroundY =
             feet.y + feet.height / 2f;
 
-        // Draw seeds on the ground.
-        gooseWaves.drawSeedPatches(batch, seedTexture);
+        // Draw ground-level seed effects.
+        gooseWaves.drawSeedPatches(
+            batch,
+            seedTexture
+        );
 
-        // Draw geese behind the player.
+        // Draw geese behind the student.
         gooseWaves.drawGeeseBehindPlayer(
             batch,
-            gooseTexture,
+            gooseAnimations,
             playerGroundY
         );
 
-        // Draw the student.
+        // Draw student.
         player.draw(batch);
 
-        // Draw geese in front of the player.
+        // Draw geese in front.
         gooseWaves.drawGeeseInFrontOfPlayer(
             batch,
-            gooseTexture,
+            gooseAnimations,
             playerGroundY
         );
 
@@ -371,7 +372,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         inventoryController.dispose(); // Release the inventory controller resources.
 
         gooseHUD.dispose();
-        gooseTexture.dispose();
+        gooseAnimations.dispose();
         seedTexture.dispose();
     }
 }

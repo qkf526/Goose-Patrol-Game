@@ -12,14 +12,16 @@ public class GooseWaveManager {
 
     public static final float GAME_DURATION = 300f; // Five minutes.
     public static final int TOTAL_WAVES = 4;
-    public static final int GEESE_PER_WAVE = 4;
-    public static final int TOTAL_GEESE = TOTAL_WAVES * GEESE_PER_WAVE;
 
-    private static final float[] WAVE_STARTS = {0f, 65f, 130f, 195f};
+    private static final int[] WAVE_SIZES = {3, 5, 7, 10};
+    public static final int TOTAL_GEESE = 25;
+    public static final float BETWEEN_WAVES = 10f;
+
     private static final int SEEDS_MAX_TARGETS = 2;
     private static final float SEEDS_RANGE = 240f;
     private static final int HORN_MAX_TARGETS = 3;
     private static final float HORN_RANGE = 185f;
+
 
     // Candidate positions chosen on open ground/pathways of the campus map.
     // Coordinates are libGDX world coordinates (bottom-left origin).
@@ -51,6 +53,7 @@ public class GooseWaveManager {
     private float elapsed = 0f;
     private int nextWave = 0;
     private int dispersed = 0;
+    private float nextWaveCountdown = -1f; // -1 means there is no inter-wave countdown.
 
     public GooseWaveManager(float mapWidth, float mapHeight) {
         this.mapWidth = mapWidth;
@@ -65,6 +68,16 @@ public class GooseWaveManager {
     public int getDispersedCount() { return dispersed; }
     public float getElapsedSeconds() { return elapsed; }
     public int getSecondsRemaining() { return Math.max(0, (int) Math.ceil(GAME_DURATION - elapsed)); }
+    public boolean isBetweenWaves() {
+    return nextWaveCountdown >= 0f;
+    }
+    public int getNextWaveSeconds() {
+        if (!isBetweenWaves()) {
+            return 0;
+        }
+
+    return (int) Math.ceil(nextWaveCountdown);
+}
 
     public void togglePause() {
         if (state == GameState.PAUSED) state = GameState.PLAYING;
@@ -79,59 +92,106 @@ public class GooseWaveManager {
         nextWave = 0;
         dispersed = 0;
         state = GameState.PAUSED;
+        nextWaveCountdown = -1f;
     }
 
-    public void update(float delta, Player player, CollisionMap collisions) {
-        if (state != GameState.PLAYING) return;
+    // Method to update the game state and implement wave cooldown countdown
+    public void update( float delta, Player player, CollisionMap collisions ) {
 
-        // The clock accumulates real elapsed time, not clamped movement time.
-        elapsed += Math.max(0f, delta);
-
-        while (nextWave < TOTAL_WAVES && elapsed >= WAVE_STARTS[nextWave]) {
-            spawnWave(nextWave, player, collisions);
-            nextWave++;
+        if (state != GameState.PLAYING) {
+            return;
         }
 
+        float dt = Math.max(0f, delta);
+
+        // Update the overall five-minute timer.
+        elapsed += dt;
+
+        // Check whether the game is over.
+        if (elapsed >= GAME_DURATION || player.isDefeated()) {
+            state = GameState.LOST;
+            return;
+        }
+
+        // Start the first wave.
+        if (nextWave == 0) {
+
+            spawnWave(nextWave, player, collisions);
+            nextWave++;
+
+        } else if (isBetweenWaves()) {
+
+            // Reduce the inter-wave cooldown.
+            nextWaveCountdown = Math.max( 0f, nextWaveCountdown - dt);
+
+            // Start the next wave when cooldown ends.
+            if (nextWaveCountdown <= 0f) {
+                spawnWave(nextWave, player, collisions);
+                nextWave++;
+                nextWaveCountdown = -1f;
+            }
+        }
+
+        // Update each goose.
         for (int i = geese.size - 1; i >= 0; i--) {
+
             Goose goose = geese.get(i);
-            goose.update(delta, player, collisions, mapWidth, mapHeight);
+            goose.update( dt, player, collisions, mapWidth,mapHeight);
+
+            // Remove geese that have finished fleeing.
             if (goose.isGone()) {
                 geese.removeIndex(i);
                 dispersed++;
             }
         }
 
+        // Update existing seed patches.
         for (int i = seedPatches.size - 1; i >= 0; i--) {
+
             SeedPatch patch = seedPatches.get(i);
-            patch.secondsRemaining -= delta;
-            if (patch.secondsRemaining <= 0f) seedPatches.removeIndex(i);
+            patch.secondsRemaining -= dt;
+
+            if (patch.secondsRemaining <= 0f) {
+                seedPatches.removeIndex(i);
+            }
         }
 
-        if (player.isDefeated() || elapsed >= GAME_DURATION) {
+        // Check for defeat after goose attacks.
+        if (player.isDefeated()) {
+
             state = GameState.LOST;
-        } else if (nextWave == TOTAL_WAVES && geese.size == 0) {
+
+        } else if ( nextWave == TOTAL_WAVES && geese.size == 0) {
+
+            // All four waves have been completed.
             state = GameState.WON;
+
+        } else if ( geese.size == 0 && nextWave < TOTAL_WAVES && !isBetweenWaves()) {
+
+            // Current wave is cleared.
+            // Begin a ten-second break.
+            nextWaveCountdown = BETWEEN_WAVES;
         }
     }
 
+    //Method to spawn waves of geese
     private void spawnWave(int waveNumber, Player player, CollisionMap collisions) {
         float playerX = player.getCentreX();
         float playerY = player.getCentreY();
         int spawned = 0;
-        for (int i = 0; i < GEESE_PER_WAVE; i++) {
+        for (int i = 0; i < WAVE_SIZES[waveNumber]; i++) {
             // Rotate spawn points between waves to vary the approach directions.
             int initialIndex = (waveNumber * 3 + i * 2) % SPAWN_POINTS.length;
             for (int tryIndex = 0; tryIndex < SPAWN_POINTS.length; tryIndex++) {
                 float[] point = SPAWN_POINTS[(initialIndex + tryIndex) % SPAWN_POINTS.length];
-                if (isValidSpawn(point[0], point[1], playerX, playerY, collisions)
-                    && !isSpawnOccupied(point[0], point[1])) {
+                if (isValidSpawn(point[0], point[1], playerX, playerY, collisions) && !isSpawnOccupied(point[0], point[1])) {
                     geese.add(new Goose(point[0], point[1]));
                     spawned++;
                     break;
                 }
             }
         }
-        // Warn if all four couldn't spawn: map collisions may have changed.
+        // Warn if all geese couldn't spawn: map collisions may have changed.
         System.out.println("Wave " + (waveNumber + 1) + " spawned " + spawned + " geese.");
     }
 
@@ -144,8 +204,8 @@ public class GooseWaveManager {
         return false;
     }
 
-    private boolean isValidSpawn(float x, float y, float playerX, float playerY,
-                                 CollisionMap collisions) {
+    // Check if spawn location is valid
+    private boolean isValidSpawn(float x, float y, float playerX, float playerY,CollisionMap collisions) {
         if (x < 20f || y < 20f || x > mapWidth - 20f || y > mapHeight - 20f) return false;
         float dx = x - playerX;
         float dy = y - playerY;
@@ -160,19 +220,17 @@ public class GooseWaveManager {
         float seedX = playerGroundX + 24f;
         float seedY = playerGroundY;
         seedPatches.add(new SeedPatch(seedX, seedY));
-        return affectClosest(playerGroundX, playerGroundY,
-            SEEDS_RANGE, SEEDS_MAX_TARGETS, false, seedX, seedY);
+        return affectClosest(playerGroundX, playerGroundY, SEEDS_RANGE, SEEDS_MAX_TARGETS, false, seedX, seedY);
     }
 
     /** Called once when an Air Horn-use animation completes successfully. */
     public int useAirHorn(float playerGroundX, float playerGroundY) {
         if (state != GameState.PLAYING) return 0;
-        return affectClosest(playerGroundX, playerGroundY,
-            HORN_RANGE, HORN_MAX_TARGETS, true, playerGroundX, playerGroundY);
+        return affectClosest(playerGroundX, playerGroundY, HORN_RANGE, HORN_MAX_TARGETS, true, playerGroundX, playerGroundY);
     }
 
-    private int affectClosest(float playerX, float playerY, float radius,
-                              int limit, boolean horn, float seedX, float seedY) {
+    //Method to make sure the closest geese to an item are the one affected, so one use of the item doesn't disperse all geese of the wave
+    private int affectClosest(float playerX, float playerY, float radius,int limit, boolean horn, float seedX, float seedY) {
         int affected = 0;
         Array<Goose> chosen = new Array<>();
         float radius2 = radius * radius;
@@ -203,21 +261,20 @@ public class GooseWaveManager {
     /** Draw seed patches before actors, so geese can stand on them. */
     public void drawSeedPatches(SpriteBatch batch, Texture seedTexture) {
         for (SeedPatch patch : seedPatches) {
-            batch.draw(seedTexture, patch.x - 12f, patch.y - 7f, 24f, 16f);
+            batch.draw(seedTexture, patch.x - 8f, patch.y - 7f, 24f, 16f);
         }
     }
 
     /** Basic depth ordering relative to the player's ground position. */
-    public void drawGeeseBehindPlayer(SpriteBatch batch, Texture gooseTexture, float playerGroundY) {
+    public void drawGeeseBehindPlayer(SpriteBatch batch, GooseAnimations animations, float playerGroundY) {
         for (Goose goose : geese) {
-            if (goose.getY() >= playerGroundY) goose.draw(batch, gooseTexture);
+            if (goose.getY() >= playerGroundY) goose.draw(batch, animations);
         }
     }
-
-    public void drawGeeseInFrontOfPlayer(SpriteBatch batch, Texture gooseTexture, float playerGroundY) {
+    //Method to draw geese in front of player for depth ordering
+    public void drawGeeseInFrontOfPlayer(SpriteBatch batch, GooseAnimations animations, float playerGroundY) {
         for (Goose goose : geese) {
-            if (goose.getY() < playerGroundY) goose.draw(batch, gooseTexture);
+            if (goose.getY() < playerGroundY) goose.draw(batch, animations);
         }
     }
 }
-
