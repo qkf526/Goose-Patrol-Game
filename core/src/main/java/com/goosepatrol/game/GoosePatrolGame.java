@@ -3,22 +3,20 @@ package com.goosepatrol.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
-
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-
-import com.badlogic.gdx.Input;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class GoosePatrolGame extends ApplicationAdapter {
 
@@ -58,12 +56,15 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private Texture hudPanel;
 
     private InventoryController inventoryController;
+    // Manages the game's sound effects.
+    private SoundManager soundManager;
 
     // Called when the application is first created. Used to initialize game resources.
     @Override
     public void create() {
         
         batch = new SpriteBatch(); // Initialise the sprite batch for drawing textures.
+        soundManager = new SoundManager();
 
         //HEART ICON AND HEALTH FONT
         heartIcon = new Texture(Gdx.files.internal("ui/heart_full.png")); // Load the heart image.
@@ -127,6 +128,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
     public void render() {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
+     if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.J)) {
+            soundManager.playGoose();
+        }
 
         inventoryController.handleInput(); // Handle input for item selection and usage.
 
@@ -293,5 +297,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
         healthFont.dispose(); // Release the font resources.
         hudPanel.dispose(); // Release the HUD panel texture resources.
         inventoryController.dispose(); // Release the inventory controller resources.
+        soundManager.dispose();
     }
 }
