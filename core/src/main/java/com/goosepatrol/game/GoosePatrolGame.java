@@ -200,12 +200,20 @@ public class GoosePatrolGame extends ApplicationAdapter {
                 }
             }
 
+            //Remember the game state before updating
+            GooseWaveManager.GameState previousState = gooseWaves.getState();
+
             // Update the clock, geese and waves.
             gooseWaves.update(
                 deltaTime,
                 player,
                 collisions
             );
+            //Play Game Over sound only when the player loses
+            if (previousState != GooseWaveManager.GameState.LOST
+                    && gooseWaves.getState() == GooseWaveManager.GameState.LOST){
+                        soundManager.playGameOver();
+                    }
         }
 
         player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
