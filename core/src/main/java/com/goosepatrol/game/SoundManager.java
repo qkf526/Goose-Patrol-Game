@@ -19,6 +19,7 @@ public class SoundManager implements Disposable {
     private Music footstepsMusic;
     private Sound equipSound;
     private Sound victorySound;
+    private Sound clickSound;
 
     // Load sound effects
     public SoundManager() {
@@ -64,6 +65,10 @@ public class SoundManager implements Disposable {
         );
         victorySound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/victory.wav")
+        );
+
+        clickSound = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/ui click.ogg")
         );
 
 
@@ -145,8 +150,9 @@ public void playGoose(int nearbyGeese) {
         victorySound.play(0.35f);
     }
 
-
-
+    public void playClick(){
+        clickSound.play(0.25f);
+    }
 
     // Release audio resources
     @Override
@@ -164,5 +170,6 @@ public void playGoose(int nearbyGeese) {
         footstepsMusic.dispose();
         equipSound.dispose();
         victorySound.dispose();
+        clickSound.dispose();
     }
 }
