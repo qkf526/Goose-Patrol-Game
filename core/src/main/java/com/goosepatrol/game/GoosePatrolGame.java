@@ -66,6 +66,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
     // The Greggs event area, with the shop map and the cashier event.
     private EventArea eventArea;
+
+    // The Long Boi statue, which scares away nearby geese once per match.
+    private StatueEvent statueEvent;
+
     private Texture seedTexture;
 
     // Called when the application is first created. Used to initialize game resources.
@@ -136,6 +140,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         gooseAnimations = new GooseAnimations();
 
         eventArea = new EventArea(); // Load the Greggs shop map and create the cashier event.
+        statueEvent = new StatueEvent(); // Create the Long Boi statue event.
         seedTexture = new Texture(Gdx.files.internal("effects/seeds_patch.png"));
 
         // Preserve sharp pixel-art edges.
@@ -178,6 +183,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
             player.update(deltaTime, activeCollisions);
 
             eventArea.update(player, inventoryController.getInventory()); // Move the student in or out of Greggs and run the cashier event.
+
+            // The statue is on campus, so it can only be used outside Greggs.
+            if (!eventArea.isInEventArea()) {
+                statueEvent.update(player, gooseWaves);
+            }
 
             // Which item was successfully used?
             ItemType used =
@@ -286,6 +296,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         eventArea.drawDialog(batch); // Draw the cashier dialog when the student is close.
 
+        // Draw the statue pop-up on campus.
+        if (!eventArea.isInEventArea()) {
+            statueEvent.draw(batch);
+        }
+
         batch.end();
 
         drawHealthHUD(); // Draw the player's health on the HUD.
@@ -368,6 +383,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         gooseWaves.reset();
         player.resetToStart(185f, 470f);
         eventArea.reset();
+        statueEvent.reset(); // Let the statue be used again.
 
         // Recreate the initial stock and clear the items-used counter.
         inventoryController.dispose();
@@ -405,6 +421,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         gooseHUD.dispose();
         gooseAnimations.dispose();
         eventArea.dispose(); // Release the Greggs shop map and dialog font.
+        statueEvent.dispose(); // Release the statue pop-up.
         seedTexture.dispose();
     }
 }

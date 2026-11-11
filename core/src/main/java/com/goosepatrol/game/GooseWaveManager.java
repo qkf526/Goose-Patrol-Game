@@ -22,6 +22,9 @@ public class GooseWaveManager {
     private static final int HORN_MAX_TARGETS = 3;
     private static final float HORN_RANGE = 185f;
 
+    // The Long Boi statue scares away every goose within this distance of the statue.
+    private static final float STATUE_RANGE = 450f;
+
 
     // Candidate positions chosen on open ground/pathways of the campus map.
     // Coordinates are libGDX world coordinates (bottom-left origin).
@@ -244,6 +247,12 @@ public class GooseWaveManager {
     public int useAirHorn(float playerGroundX, float playerGroundY) {
         if (state != GameState.PLAYING) return 0;
         return affectClosest(playerGroundX, playerGroundY, HORN_RANGE, HORN_MAX_TARGETS, true, playerGroundX, playerGroundY);
+    }
+
+    /** Called once when the student uses the Long Boi statue: frightens every goose within the statue's range. */
+    public int useStatueHonk(float statueX, float statueY) {
+        if (state != GameState.PLAYING) return 0;
+        return affectClosest(statueX, statueY, STATUE_RANGE, Integer.MAX_VALUE, true, statueX, statueY);
     }
 
     //Method to make sure the closest geese to an item are the one affected, so one use of the item doesn't disperse all geese of the wave
