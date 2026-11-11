@@ -149,6 +149,15 @@ public class EventArea {
             itemEvent.drawDialog(batch); // Draw the cashier dialog if the student is close.
         }
     }
+
+    // restart event area back for a new match.
+    public void reset() {
+        System.out.println("TEST: EventArea reset"); // TEMPORARY TEST
+        inEventArea = false; // The student starts the new match on campus.
+        atEntrance = false;
+        atExit = false;
+        itemEvent.reset(); // Let the cashier give the sausage roll again.
+    }
  
     // Free up memory when the game closes.
     public void dispose() {

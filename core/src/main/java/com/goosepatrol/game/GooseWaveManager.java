@@ -97,6 +97,12 @@ public class GooseWaveManager {
 
     // Method to update the game state and implement wave cooldown countdown
     public void update( float delta, Player player, CollisionMap collisions ) {
+        update(delta, player, collisions, false); // The student is outside.
+    }
+
+    // Update the game state. While the student is indoors (for example in Greggs),
+    // only the clock and the break between waves keep running: geese wait outside and no new wave spawns.
+    public void update( float delta, Player player, CollisionMap collisions, boolean playerIndoors ) {
 
         if (state != GameState.PLAYING) {
             return;
@@ -110,6 +116,17 @@ public class GooseWaveManager {
         // Check whether the game is over.
         if (elapsed >= GAME_DURATION || player.isDefeated()) {
             state = GameState.LOST;
+            return;
+        }
+
+        // While the student is indoors, the geese cannot follow them and no wave spawns.
+        if (playerIndoors) {
+
+            // Keep the break between waves counting down; the next wave spawns once the student is back outside.
+            if (isBetweenWaves()) {
+                nextWaveCountdown = Math.max(0f, nextWaveCountdown - dt);
+            }
+
             return;
         }
 

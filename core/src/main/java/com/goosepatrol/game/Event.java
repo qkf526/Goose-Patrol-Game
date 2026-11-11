@@ -193,6 +193,15 @@ public class Event {
             dialogFont.setColor(Color.WHITE);
         }
     }
+
+    //restarts the event, so the item can be given again in a new match.
+    public void reset() {
+        System.out.println("TEST: Event reset"); // TEMPORARY TEST
+        currentLine = 0;
+        dialogActive = false;
+        playerInRange = false;
+        itemGiven = false;
+    }
  
     // Release resources when the event is no longer needed.
     public void dispose() {

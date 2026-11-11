@@ -1,4 +1,3 @@
-
 package com.goosepatrol.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
@@ -64,6 +63,9 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private GooseWaveManager gooseWaves;
     private GooseHUD gooseHUD;
     private GooseAnimations gooseAnimations;
+
+    // The Greggs event area, with the shop map and the cashier event.
+    private EventArea eventArea;
     private Texture seedTexture;
 
     // Called when the application is first created. Used to initialize game resources.
@@ -132,6 +134,8 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         // Load temporary goose graphics.
         gooseAnimations = new GooseAnimations();
+
+        eventArea = new EventArea(); // Load the Greggs shop map and create the cashier event.
         seedTexture = new Texture(Gdx.files.internal("effects/seeds_patch.png"));
 
         // Preserve sharp pixel-art edges.
@@ -168,14 +172,20 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
             inventoryController.handleInput();
 
-            player.update(deltaTime, collisions);
+            // Use the shop's walls when inside Greggs, otherwise the campus walls.
+            CollisionMap activeCollisions = eventArea.isInEventArea() ? eventArea.getShopCollisions() : collisions;
+
+            player.update(deltaTime, activeCollisions);
+
+            eventArea.update(player, inventoryController.getInventory()); // Move the student in or out of Greggs and run the cashier event.
 
             // Which item was successfully used?
             ItemType used =
                 inventoryController.updateAfterPlayer();
 
-            if (used == ItemType.SEEDS ||
-                used == ItemType.AIR_HORN) {
+            // Seeds and the Air Horn only affect geese while the student is outside.
+            if ((used == ItemType.SEEDS ||
+                used == ItemType.AIR_HORN) && !eventArea.isInEventArea()) {
 
                 // Calculate the player's ground position.
                 com.badlogic.gdx.math.Rectangle feet =
@@ -194,22 +204,27 @@ public class GoosePatrolGame extends ApplicationAdapter {
                 }
             }
 
-            // Update the clock, geese and waves.
+            // Update the clock, geese and waves. Inside Greggs, only the clock runs and the geese wait outside.
             gooseWaves.update(
                 deltaTime,
                 player,
-                collisions
+                collisions,
+                eventArea.isInEventArea()
             );
         }
 
-        player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
+        // Use the size of whichever map the student is on.
+        int currentWidth = eventArea.isInEventArea() ? EventArea.SHOP_WIDTH : mapWidth;
+        int currentHeight = eventArea.isInEventArea() ? EventArea.SHOP_HEIGHT : mapHeight;
+
+        player.keepInsideMap(currentWidth, currentHeight); // Ensure the player stays within the map boundaries.
 
         // MAKE CAMERA FOLLOW PLAYER
         float halfWidth = viewport.getWorldWidth() / 2f; // Calculate half the width of the camera view.
         float halfHeight = viewport.getWorldHeight() / 2f; // Calculate half the height of the camera view.
 
-        float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, mapWidth - halfWidth); // Clamp the camera's x-coordinate to follow the player while staying within map bounds.
-        float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, mapHeight - halfHeight); // Clamp the camera's y-coordinate to follow the player while staying within map bounds.
+        float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, currentWidth - halfWidth); // Clamp the camera's x-coordinate to follow the player while staying within map bounds.
+        float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, currentHeight - halfHeight); // Clamp the camera's y-coordinate to follow the player while staying within map bounds.
 
         camera.position.set(cameraX, cameraY, 0f); // Set the camera's position to follow the player.
         camera.update(); // Update the camera to apply the new position.
@@ -218,8 +233,14 @@ public class GoosePatrolGame extends ApplicationAdapter {
         ScreenUtils.clear(0.12f, 0.16f, 0.20f, 1f); // Clear the screen with a dark blue color before drawing the map and player.
         viewport.apply(); // Apply the viewport to ensure the camera's view is correctly set.
 
-        mapRenderer.setView(camera); // Set the map renderer to use the camera's view.
-        mapRenderer.render(); // Render the campus map.
+        // Draw the shop when inside Greggs, otherwise the campus.
+        if (eventArea.isInEventArea()) {
+            eventArea.getShopRenderer().setView(camera);
+            eventArea.getShopRenderer().render();
+        } else {
+            mapRenderer.setView(camera); // Set the map renderer to use the camera's view.
+            mapRenderer.render(); // Render the campus map.
+        }
 
         // DRAW PLAYER
 
@@ -233,11 +254,14 @@ public class GoosePatrolGame extends ApplicationAdapter {
         float playerGroundY =
             feet.y + feet.height / 2f;
 
-        // Draw ground-level seed effects.
-        gooseWaves.drawSeedPatches(
-            batch,
-            seedTexture
-        );
+        // Seeds and geese are only drawn on campus.
+        if (!eventArea.isInEventArea()) {
+
+            // Draw ground-level seed effects.
+            gooseWaves.drawSeedPatches(
+                batch,
+                seedTexture
+            );
 
         // Draw geese behind the student.
         gooseWaves.drawGeeseBehindPlayer(
@@ -245,16 +269,22 @@ public class GoosePatrolGame extends ApplicationAdapter {
             gooseAnimations,
             playerGroundY
         );
+        }
 
         // Draw student.
         player.draw(batch);
 
-        // Draw geese in front.
-        gooseWaves.drawGeeseInFrontOfPlayer(
-            batch,
-            gooseAnimations,
-            playerGroundY
-        );
+        if (!eventArea.isInEventArea()) {
+
+            // Draw geese in front.
+            gooseWaves.drawGeeseInFrontOfPlayer(
+                batch,
+                gooseAnimations,
+                playerGroundY
+            );
+        }
+
+        eventArea.drawDialog(batch); // Draw the cashier dialog when the student is close.
 
         batch.end();
 
@@ -337,6 +367,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private void restartMatch() {
         gooseWaves.reset();
         player.resetToStart(185f, 470f);
+        eventArea.reset();
 
         // Recreate the initial stock and clear the items-used counter.
         inventoryController.dispose();
@@ -373,6 +404,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         gooseHUD.dispose();
         gooseAnimations.dispose();
+        eventArea.dispose(); // Release the Greggs shop map and dialog font.
         seedTexture.dispose();
     }
 }
