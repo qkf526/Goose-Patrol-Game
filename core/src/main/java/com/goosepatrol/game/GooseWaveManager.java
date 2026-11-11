@@ -277,4 +277,52 @@ public class GooseWaveManager {
             if (goose.getY() < playerGroundY) goose.draw(batch, animations);
         }
     }
+    public boolean isGooseNearPlayer(Player player, float range){
+        float playerX = player.getCentreX();
+        float playerY = player.getCentreY();
+
+        for (Goose goose : geese){
+            if (goose.getState() != Goose.State.CHASING
+                    && goose.getState() != Goose.State.PECKING){
+                continue;
+            }
+
+            float dx = goose.getX() - playerX;
+            float dy = goose.getY() - playerY;
+
+            if (dx * dx + dy * dy <= range * range){
+                return true;
+            }
+
+        }
+        return false;
+    }
+
+    public int countNearbyGeese(Player player, float range) {
+
+        int count = 0;
+
+        float playerX = player.getCentreX();
+        float playerY = player.getCentreY();
+
+            for (Goose goose : geese) {
+
+            // Only count geese chasing or attacking the player
+            if (goose.getState() != Goose.State.CHASING
+                    && goose.getState() != Goose.State.PECKING) {
+                continue;
+            }
+
+        float dx = goose.getX() - playerX;
+        float dy = goose.getY() - playerY;
+
+            // Check if the goose is within range
+            if (dx * dx + dy * dy <= range * range) {
+                count++;
+            }
+    }
+
+    return count;
+}
+
 }

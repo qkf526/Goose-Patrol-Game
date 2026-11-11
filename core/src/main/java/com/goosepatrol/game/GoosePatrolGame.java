@@ -10,12 +10,11 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -61,6 +60,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private InventoryController inventoryController;
     // Manages the game's sound effects.
     private SoundManager soundManager;
+    private float gooseSoundCooldown = 0f;
+    private static final float GOOSE_SOUND_INTERVAL = 5f;
+    private static final float GOOSE_SOUND_RANGE = 150f;
+
 
     // The GooseWaveManager for managing the waves of geese and game state.
     private GooseWaveManager gooseWaves;
@@ -148,11 +151,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
     public void render() {
         
         float deltaTime = Gdx.graphics.getDeltaTime(); // Calculate the time since the last frame.
-     if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.J)) {
-            soundManager.playGoose();
-        }
-
-        inventoryController.handleInput(); // Handle input for item selection and usage.
 
 
         // ENTER starts/resumes; ESC pauses/resumes.
@@ -168,19 +166,45 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
             restartMatch();
         }
+        //Stop footsteps when the game is paused or finished.
+        if (!gooseWaves.isPlaying()) {
+            soundManager.stopFootsteps();
+        }
+
 
         // Only update gameplay while playing.
         if (gooseWaves.isPlaying()) {
 
-            inventoryController.handleInput();
+            
+        ItemType equippedBefore = player.getEquippedItem();
+
+        inventoryController.handleInput();
+
+        ItemType equippedAfter = player.getEquippedItem();
+
+        //Play sound only when the equipped item changes.
+        if (equippedAfter != null && equippedAfter != equippedBefore) {
+            soundManager.playEquip();
+        }
+
 
             player.update(deltaTime, collisions);
+
+            if (player.isMoving()){
+                soundManager.playFootsteps();
+            } else {
+                soundManager.stopFootsteps();
+            }
 
             // Which item was successfully used?
             ItemType used =
                 inventoryController.updateAfterPlayer();
+            
+                if (used == ItemType.BANDAGE){
+                soundManager.playBandage();
+                }
 
-            if (used == ItemType.SEEDS ||
+                if (used == ItemType.SEEDS ||
                 used == ItemType.AIR_HORN) {
 
                 // Calculate the player's ground position.
@@ -195,25 +219,74 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
                 if (used == ItemType.SEEDS) {
                     gooseWaves.useSeeds(groundX, groundY);
+                    soundManager.playSeeds();
                 } else {
                     gooseWaves.useAirHorn(groundX, groundY);
+                    soundManager.playAirHorn();
                 }
             }
 
             //Remember the game state before updating
             GooseWaveManager.GameState previousState = gooseWaves.getState();
-
+            
+            int healthBefore = player.getHealth();
             // Update the clock, geese and waves.
             gooseWaves.update(
                 deltaTime,
                 player,
                 collisions
             );
-            //Play Game Over sound only when the player loses
-            if (previousState != GooseWaveManager.GameState.LOST
-                    && gooseWaves.getState() == GooseWaveManager.GameState.LOST){
-                        soundManager.playGameOver();
-                    }
+            //Play hurt sound only when the player takes damage
+            if(player.getHealth() < healthBefore){
+                soundManager.playHurt();
+            }
+            //Stop footsteps immediately when the game ends.
+            if (!gooseWaves.isPlaying()) {
+                soundManager.stopFootsteps();
+            }
+
+            
+        gooseSoundCooldown = Math.max(
+         0f,
+            gooseSoundCooldown - deltaTime
+        );
+
+        // Count nearby geese
+        int nearbyGeese = gooseWaves.countNearbyGeese(
+            player,
+            GOOSE_SOUND_RANGE
+        );
+
+        // Play goose sounds based on the number of nearby geese
+        if (gooseWaves.isPlaying()
+                && nearbyGeese > 0
+                && gooseSoundCooldown <= 0f) {
+
+            soundManager.playGoose(nearbyGeese);
+
+        if (nearbyGeese == 1) {
+            gooseSoundCooldown = MathUtils.random(4f, 5f);
+
+        } else if (nearbyGeese <= 3) {
+            gooseSoundCooldown = MathUtils.random(2f, 3f);
+
+        } else {
+            gooseSoundCooldown = MathUtils.random(1f, 2f);
+        }
+}
+
+
+        //Play Game Over sound only when the player loses
+        if (previousState != GooseWaveManager.GameState.LOST
+                && gooseWaves.getState() == GooseWaveManager.GameState.LOST){
+                    soundManager.playGameOver();
+        }
+        
+        // Play victory sound only once when the player wins.
+        if (previousState != GooseWaveManager.GameState.WON
+                && gooseWaves.getState() == GooseWaveManager.GameState.WON) {
+            soundManager.playVictory();
+        }
         }
 
         player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
