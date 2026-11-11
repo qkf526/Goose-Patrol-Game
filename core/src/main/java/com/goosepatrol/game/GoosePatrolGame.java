@@ -1,16 +1,19 @@
 package com.goosepatrol.game;
+
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 /**
- * extending game gives access to setScreen()
+ * Screen manager. Owns only the resources every screen shares.
+ * All gameplay lives in GameScreen.
  *
- * setScreen() allows us to swao between diff screen objects
+ * render() and resize() are deliberately NOT overridden: Game's own versions
+ * forward them to whichever screen is current.
  */
-public class GoosePatrolGame extends Game
-{
-    // used by every screen
+public class GoosePatrolGame extends Game {
+
+    // Shared by every screen. Screens borrow these and must never dispose them.
     public SpriteBatch batch;
     public BitmapFont font;
 
@@ -18,24 +21,18 @@ public class GoosePatrolGame extends Game
     public void create() {
         batch = new SpriteBatch();
         font = new BitmapFont();
-        font.getData().setScale(2f); // enlarge text
-        setScreen(new MenuScreen(this)); //this passes game to screen so screen can reach methods and vars + first screen
+        font.getData().setScale(2f);
 
+        setScreen(new MenuScreen(this));   // first screen the player sees
     }
 
-    /**
-     * runs once application closes - game doesn't dispose current screen for us so is done here
-     * manually release batch and font too
-     */
     @Override
     public void dispose() {
+        // Game does not dispose the current screen for us.
         if (getScreen() != null) {
             getScreen().dispose();
         }
-
         batch.dispose();
         font.dispose();
     }
-
-
 }

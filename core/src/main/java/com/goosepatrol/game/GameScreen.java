@@ -1,270 +1,317 @@
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-
+/**
+ * The gameplay screen. Everything that used to live in GoosePatrolGame
+ * (player, map, camera, inventory, geese, waves, HUDs) lives here now.
+ *
+ * ESC opens PauseScreen. When the wave manager reports a win or a loss the
+ * game goes to GameOverScreen. Restarting means menu -> new GameScreen.
+ */
 public class GameScreen implements Screen {
-    private final GoosePatrolGame game;
-    private Player player;
 
+    private final GoosePatrolGame game;   // shared batch + font, and setScreen()
+
+    // Player
+    private Player player;
     private Texture playerWalkSheet;
     private Texture playerHurtSheet;
 
-    // The width and height of the camera view used to view the game world.
+    // Item textures, kept so they can be disposed
+    private final Array<Texture> itemTextures = new Array<>();
+
+    // Camera
     private static final float VIEW_WIDTH = 794f;
     private static final float VIEW_HEIGHT = 600f;
-
-    // The campus map and its renderer for displaying the tiled map and the collision map for detecting obstacles.
-    private TiledMap campusMap;
-    private OrthogonalTiledMapRenderer mapRenderer;
-    private CollisionMap collisions;
-
-    // The camera and viewport for controlling the view of the game world.
     private OrthographicCamera camera;
     private FitViewport viewport;
 
-    // The width and height of entire map.
+    // Map
+    private TiledMap campusMap;
+    private OrthogonalTiledMapRenderer mapRenderer;
+    private CollisionMap collisions;
     private int mapWidth;
     private int mapHeight;
 
-    /**
-     * wtv is in create method goes here
-     */
+    // Health HUD
+    private Texture heartIcon;
+    private Texture hudPanel;
+    private BitmapFont healthFont;
+
+    // Inventory, geese and waves
+    private InventoryController inventoryController;
+    private GooseWaveManager gooseWaves;
+    private GooseHUD gooseHUD;
+    private GooseAnimations gooseAnimations;
+    private Texture seedTexture;
+
+    // ---------------------------------------------------------------------
+    // Setup (this is the old create())
+    // ---------------------------------------------------------------------
     public GameScreen(GoosePatrolGame game) {
         this.game = game;
 
-        playerWalkSheet = new Texture(Gdx.files.internal("character/student_walk.png")); // Load the sprite sheet for the player character.
-        playerHurtSheet = new Texture(Gdx.files.internal("character/student_hurt.png")); // Load the sprite sheet for the player character's hurt animation.
+        // Health HUD
+        heartIcon = new Texture(Gdx.files.internal("ui/heart_full.png"));
+        heartIcon.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        healthFont = new BitmapFont();
+        healthFont.getData().setScale(1.5f);
+        healthFont.setColor(Color.WHITE);
+        hudPanel = new Texture(Gdx.files.internal("ui/hud_panel.png"));
+        hudPanel.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
-        playerWalkSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
-        playerHurtSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest); // Set the texture filter to nearest for pixelated look.
+        // Player and animations
+        playerWalkSheet = new Texture(Gdx.files.internal("character/student_walk.png"));
+        playerHurtSheet = new Texture(Gdx.files.internal("character/student_hurt.png"));
+        playerWalkSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        playerHurtSheet.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
-        TextureRegion[][] walkFrames = TextureRegion.split(playerWalkSheet, 300, 300); // Split the walk sprite sheet into individual frames of size 16x16pixels.
-        TextureRegion[][] hurtFrames = TextureRegion.split(playerHurtSheet, 300, 300); // Split the hurt sprite sheet into individual frames of size 16x16pixels.
+        TextureRegion[][] walkFrames = TextureRegion.split(playerWalkSheet, 300, 300);
+        TextureRegion[][] hurtFrames = TextureRegion.split(playerHurtSheet, 300, 300);
 
-        player = new Player(185f, 470f, walkFrames); // Create a new player character at the starting position (185, 470).
-        player.setHurtAnimations(hurtFrames); // Set the hurt animations for the player character.
+        player = new Player(185f, 470f, walkFrames);
+        player.setHurtAnimations(hurtFrames);
 
-        // LOAD MAP
-        campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
-        mapRenderer = new OrthogonalTiledMapRenderer(campusMap); // Create a renderer for the campus map.
-        collisions = new CollisionMap(campusMap); // Create a collision map for detecting obstacles in the campus map.
-        System.out.println("Collision zones loaded: " + collisions.getObstacleCount()); // Print the number of collision zones loaded from the map to the console.
+        // Item animations (must exist before the InventoryController equips slot 0)
+        registerItem(ItemType.SEEDS, "seeds", 313, true);
+        registerItem(ItemType.AIR_HORN, "air_horn", 313, true);
+        registerItem(ItemType.BANDAGE, "bandage", 313, false);
+        registerItem(ItemType.SAUSAGE_ROLL, "sausage_roll", 313, false);
 
-        // READ MAP DIMENSIONS
-        int columns = campusMap.getProperties().get("width", Integer.class); // Get the number of columns in the map.
-        int rows = campusMap.getProperties().get("height", Integer.class); // Get the number of rows in the map.
-        int tileWidth = campusMap.getProperties().get("tilewidth", Integer.class); // Get the width of each tile in pixels.
-        int tileHeight = campusMap.getProperties().get("tileheight", Integer.class); // Get the height of each tile in pixels.
+        inventoryController = new InventoryController(player);
 
-        // Calculate the total width and height of the map in pixels.
+        // Map
+        campusMap = new TmxMapLoader().load("maps/campus.tmx");
+        mapRenderer = new OrthogonalTiledMapRenderer(campusMap);
+        collisions = new CollisionMap(campusMap);
+
+        int columns = campusMap.getProperties().get("width", Integer.class);
+        int rows = campusMap.getProperties().get("height", Integer.class);
+        int tileWidth = campusMap.getProperties().get("tilewidth", Integer.class);
+        int tileHeight = campusMap.getProperties().get("tileheight", Integer.class);
         mapWidth = columns * tileWidth;
         mapHeight = rows * tileHeight;
 
-        // SETUP CAMERA
-        camera = new OrthographicCamera(); // Create a new orthographic camera for 2D rendering.
-        viewport = new FitViewport(VIEW_WIDTH, VIEW_HEIGHT, camera); // Create a viewport to maintain aspect ratio and fit the camera view to the window size.
-        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Update the viewport with the current window size.
+        // Camera
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(VIEW_WIDTH, VIEW_HEIGHT, camera);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
+        // Geese, waves and HUD
+        gooseWaves = new GooseWaveManager(mapWidth, mapHeight);
+        gooseHUD = new GooseHUD();
+        gooseAnimations = new GooseAnimations();
+        seedTexture = new Texture(Gdx.files.internal("effects/seeds_patch.png"));
+        seedTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
+        // The wave manager starts in its own PAUSED state. Our PauseScreen
+        // replaces that, so switch it to PLAYING straight away.
+        gooseWaves.togglePause();
     }
 
-    /**
-     * splits each frame into update and draw (logic and graphics) to keep code organised
-     */
+    // ---------------------------------------------------------------------
+    // Per-frame
+    // ---------------------------------------------------------------------
     @Override
     public void render(float delta) {
 
-        // PAUSE: ESC opens the pause screen.
-        // 'this' is passed so the pause screen can hand control back to THIS
-        // game screen, with the player, map and health exactly as they were.
+        // PAUSE: hand over to PauseScreen. 'this' lets it return to this exact
+        // game (same player, geese, timer) when Resume is pressed.
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.setScreen(new PauseScreen(game, this));
-            return;   // skip the rest of this frame
+            return;
         }
 
         update(delta);
-        draw();
 
-        player.updateMovement(delta, collisions); // Update the student's movement based on input.
+        // WIN / LOSE: leave for good, so dispose first.
+        if (gooseWaves.isFinished()) {
+            boolean won = gooseWaves.getState() == GooseWaveManager.GameState.WON;
+            dispose();
 
-
-        // TEMPORARY TEST: Simulate a goose peck.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-
-            // Try to apply one point of damage.
-            boolean damageApplied = player.takeDamage(1);
-
-            if (damageApplied) {
-
-                // Simulate a goose standing left of the player.
-                float attackerX = player.getCentreX() - 48f;
-                float attackerY = player.getCentreY();
-
-                // Push the student away from the simulated goose.
-                player.applyKnockbackFrom(attackerX, attackerY);
-                System.out.println("Goose peck! HP: " + player.getHealth());
-            }
-        }
-
-
-        // TEMPORARY TEST: Heal the player.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-
-            player.heal(1);
-
-            System.out.println("Healed by 1 point. Current health: " + player.getHealth());
-        }
-
-        // BANDAGE TEMPORARY HEAL TEMPORARY TEST: Heal the player using bandage.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
-
-            player.heal(2);
-            System.out.println("Bandage used! Health restored by 2 points.");
-            System.out.println("Current health: " + player.getHealth());
-        }
-
-
-        // SAUSAGE ROLL HEAL TEMPORARY TEST: Heal the player using sausage roll.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
-
-            player.resetHealth();
-            System.out.println("Sausage roll consumed! Health restored to maximum.");
-            System.out.println("Current health: " + player.getHealth());
-        }
-
-        // TEMPORARY TEST: Restart after defeat.
-        // DO WE WANT GAME TO ACTUALLY RESTART LATER????
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-
-            if (!player.isDefeated()) {
-                System.out.println("Player is not defeated. Can't reset health.");
+            if (won) {
+                game.setScreen(new VictoryScreen(game));
             } else {
-                player.resetHealth();
-                System.out.println("Player health reset!");
+                game.setScreen(new GameOverScreen(game));
             }
+            return;
         }
 
-        player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
-
-        // MAKE CAMERA FOLLOW PLAYER
-        float halfWidth = viewport.getWorldWidth() / 2f; // Calculate half the width of the camera view.
-        float halfHeight = viewport.getWorldHeight() / 2f; // Calculate half the height of the camera view.
-
-        float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, mapWidth - halfWidth); // Clamp the camera's x-coordinate to follow the player while staying within map bounds.
-        float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, mapHeight - halfHeight); // Clamp the camera's y-coordinate to follow the player while staying within map bounds.
-
-        camera.position.set(cameraX, cameraY, 0f); // Set the camera's position to follow the player.
-        camera.update(); // Update the camera to apply the new position.
-
-        // DRAW CAMPUS MAP
-        ScreenUtils.clear(0.12f, 0.16f, 0.20f, 1f); // Clear the screen with a dark blue color before drawing the map and player.
-        viewport.apply(); // Apply the viewport to ensure the camera's view is correctly set.
-
-        mapRenderer.setView(camera); // Set the map renderer to use the camera's view.
-        mapRenderer.render(); // Render the campus map.
-
-        // DRAW PLAYER
-
-        game.batch.setProjectionMatrix(camera.combined); // Set the sprite batch to use the camera's combined projection and view matrix.
-
-        game.batch.begin(); // Begin drawing textures.
-
-        player.draw(game.batch); // Draw the player character using the sprite batch.
-
-        game.batch.end(); // End drawing textures.
+        draw();
     }
 
-
-    // Handle window resizing events.
-    @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height); // Update the viewport with the new window size.
-
-    }
-
-
-    /**
-     * game logic - nothing is drawn
-     * <p>
-     * later add: movement + collisions + input handling
-     *
-     * @param delta
-     */
+    // Game logic only
     private void update(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.setScreen(new PauseScreen(game, this));
+
+        if (gooseWaves.isPlaying()) {
+
+            inventoryController.handleInput();
+            player.update(delta, collisions);
+
+            // Which item (if any) finished its use animation this frame?
+            ItemType used = inventoryController.updateAfterPlayer();
+
+            if (used == ItemType.SEEDS || used == ItemType.AIR_HORN) {
+                Rectangle feet = player.getFeetBounds();
+                float groundX = feet.x + feet.width / 2f;
+                float groundY = feet.y + feet.height / 2f;
+
+                if (used == ItemType.SEEDS) {
+                    gooseWaves.useSeeds(groundX, groundY);
+                } else {
+                    gooseWaves.useAirHorn(groundX, groundY);
+                }
+            }
+
+            gooseWaves.update(delta, player, collisions);
         }
+
+        player.keepInsideMap(mapWidth, mapHeight);
+
+        // Camera follows the player, clamped to the map
+        float halfWidth = viewport.getWorldWidth() / 2f;
+        float halfHeight = viewport.getWorldHeight() / 2f;
+        float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, mapWidth - halfWidth);
+        float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, mapHeight - halfHeight);
+        camera.position.set(cameraX, cameraY, 0f);
+        camera.update();
     }
 
-    /**
-     * drawing only
-     */
+    // Drawing only
     private void draw() {
-        ScreenUtils.clear(0f, 0f, 0f, 1f); // black bg7
+        ScreenUtils.clear(0.12f, 0.16f, 0.20f, 1f);
+        viewport.apply();
 
+        mapRenderer.setView(camera);
+        mapRenderer.render();
+
+        game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
-        game.font.draw(game.batch, "GAME (press SPACE for game over", 100, 300);
+
+        Rectangle feet = player.getFeetBounds();
+        float playerGroundY = feet.y + feet.height / 2f;
+
+        gooseWaves.drawSeedPatches(game.batch, seedTexture);
+        gooseWaves.drawGeeseBehindPlayer(game.batch, gooseAnimations, playerGroundY);
+        player.draw(game.batch);
+        gooseWaves.drawGeeseInFrontOfPlayer(game.batch, gooseAnimations, playerGroundY);
+
+        game.batch.end();
+
+        drawHealthHUD();
+        inventoryController.draw();
+        gooseHUD.draw(gooseWaves);
+    }
+
+    // Health and items-used counter, anchored to the top-left of the camera view
+    private void drawHealthHUD() {
+        float hudX = camera.position.x - viewport.getWorldWidth() / 2f + 20f;
+        float hudY = camera.position.y + viewport.getWorldHeight() / 2f - 48f;
+
+        String healthText = "HP: " + player.getHealth() + "/" + player.getMaxHealth();
+
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+        game.batch.draw(hudPanel, hudX - 10f, hudY - 37f, 160, 100);
+        game.batch.draw(heartIcon, hudX, hudY, 28f, 28f);
+        healthFont.setColor(Color.WHITE);
+        healthFont.draw(game.batch, healthText, hudX + 36f, hudY + 22f);
+
+        int itemsUsed = inventoryController.getInventory().getTotalItemsUsed();
+        healthFont.draw(game.batch, "Items used: " + itemsUsed, hudX, hudY - 10f);
         game.batch.end();
     }
 
-
-    @Override
-    public void show() {
-
+    // ---------------------------------------------------------------------
+    // Item loading helpers
+    // ---------------------------------------------------------------------
+    private TextureRegion[][] loadItemFrames(String path, int frameSize) {
+        Texture texture = new Texture(Gdx.files.internal(path));
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        itemTextures.add(texture);   // remembered for disposal
+        return TextureRegion.split(texture, frameSize, frameSize);
     }
 
+    private void registerItem(ItemType item, String filenamePrefix, int frameSize,
+                              boolean hasMovingUseAnimation) {
 
-    /**
-     * app lost focus
-     */
-    @Override
-    public void pause() {
+        String basePath = "character/items/" + filenamePrefix;
+
+        TextureRegion[][] holdingFrames = loadItemFrames(basePath + "_hold.png", frameSize);
+        TextureRegion[][] standingFrames = loadItemFrames(basePath + "_use_still.png", frameSize);
+
+        TextureRegion[][] movingFrames = null;
+        if (hasMovingUseAnimation) {
+            movingFrames = loadItemFrames(basePath + "_use_walk.png", frameSize);
+        }
+
+        player.registerItemAnimations(item,
+            new ItemAnimationSet(holdingFrames, standingFrames, movingFrames));
     }
 
-
-    /**
-     * app regained focus
-     */
+    // ---------------------------------------------------------------------
+    // Screen lifecycle
+    // ---------------------------------------------------------------------
     @Override
-    public void resume() {
+    public void resize(int width, int height) {
+        viewport.update(width, height);
+        inventoryController.resize(width, height);
+        gooseHUD.resize(width, height);
     }
 
+    @Override public void show() {}
+    @Override public void pause() {}
+    @Override public void resume() {}
 
-    /**
-     * new game screen each time so old one is abandoned when we leave
-     * disposing stops resources leakingh
-     * safe rn bc dispose is empty
-     * will matter when screen owns tectures or renderers
-     */
+    // Runs whenever another screen takes over (pause, game over, ...).
+    // It must NOT dispose anything, or Resume would crash. It only puts the
+    // shared batch and GL viewport back to plain full-window settings, because
+    // the camera and viewports used above would otherwise leak into the next
+    // screen and misplace its text.
     @Override
     public void hide() {
-
+        Gdx.gl.glViewport(0, 0,
+            Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+        game.batch.setProjectionMatrix(new Matrix4().setToOrtho2D(
+            0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
     }
 
-    /**
-     * free everything this screen created
-     * textures + sounds + ShapeRenderers
-     * do not free game.batch or game.font - belong to GoosePatrolGame
-     */
+    // Call ONLY when leaving the game for good (game over, quit to menu).
+    // Frees everything this screen created. game.batch and game.font are NOT
+    // freed here; they belong to GoosePatrolGame.
     @Override
     public void dispose() {
         playerWalkSheet.dispose();
         playerHurtSheet.dispose();
+        for (Texture texture : itemTextures) {
+            texture.dispose();
+        }
+        heartIcon.dispose();
+        hudPanel.dispose();
+        seedTexture.dispose();
+        healthFont.dispose();
+
+        gooseAnimations.dispose();
+        gooseHUD.dispose();
+        inventoryController.dispose();
+
         mapRenderer.dispose();
         campusMap.dispose();
     }
