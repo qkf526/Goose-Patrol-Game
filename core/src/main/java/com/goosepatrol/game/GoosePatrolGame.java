@@ -60,6 +60,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private InventoryController inventoryController;
     // Manages the game's sound effects.
     private SoundManager soundManager;
+    private BGMSound bgmSound;
     private float gooseSoundCooldown = 0f;
     private static final float GOOSE_SOUND_INTERVAL = 5f;
     private static final float GOOSE_SOUND_RANGE = 150f;
@@ -77,6 +78,7 @@ public class GoosePatrolGame extends ApplicationAdapter {
         
         batch = new SpriteBatch(); // Initialise the sprite batch for drawing textures.
         soundManager = new SoundManager();
+        bgmSound = new BGMSound();
 
         //HEART ICON AND HEALTH FONT
         heartIcon = new Texture(Gdx.files.internal("ui/heart_full.png")); // Load the heart image.
@@ -458,10 +460,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
         hudPanel.dispose(); // Release the HUD panel texture resources.
         inventoryController.dispose(); // Release the inventory controller resources.
         soundManager.dispose();
+        bgmSound.dispose();
 
         gooseHUD.dispose();
         gooseAnimations.dispose();
         seedTexture.dispose();
     }
 }
-
