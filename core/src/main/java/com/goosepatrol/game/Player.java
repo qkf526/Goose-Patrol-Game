@@ -229,6 +229,15 @@ public class Player {
         y = MathUtils.clamp(y, 0f, maxY); // Clamp the y-coordinate to stay within the window bounds.
     }
 
+    // Set the student's x-coordinate when moving between maps.
+    public void setX(float x) {
+        this.x = x;
+    }
+
+    // Set the student's y-coordinate when moving between maps.
+    public void setY(float y) {
+        this.y = y;
+    }
 
     public void draw(SpriteBatch batch) {
 

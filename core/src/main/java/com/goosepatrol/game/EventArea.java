@@ -1,10 +1,12 @@
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 
@@ -16,91 +18,143 @@ public class EventArea {
     // The dialog and item event placed inside the event area.
     private Event itemEvent;
 
-    // The texture for the event sprite (placeholder)
-    private Texture eventSprite;
-
-    // The size of the event sprite.
-    private static final float SPRITE_SIZE = 48f;
-
-    // The position of the event sprite on the main map that takes the student into the event area.
-    private static final float ENTRANCE_X = 500f;
-    private static final float ENTRANCE_Y = 200f;
-
-    // The position of the event sprite in the event area that takes the student back to the main map.
-    private static final float EXIT_X = 40f;
-    private static final float EXIT_Y = 40f;
-
-    // The squares the student has to step on to use each sprite.
+    // The Greggs shop map, the renderer that draws it, and its walls and counters.
+    private TiledMap shopMap;
+    private OrthogonalTiledMapRenderer shopRenderer;
+    private CollisionMap shopCollisions;
+ 
+    // The size of the Greggs shop map, in pixels.
+    public static final int SHOP_WIDTH = 1280;
+    public static final int SHOP_HEIGHT = 960;
+ 
+    // The Greggs front door on the campus map. Walking into it takes the student inside.
+    private static final float ENTRANCE_X = 615f;
+    private static final float ENTRANCE_Y = 755f;
+    private static final float ENTRANCE_WIDTH = 60f;
+    private static final float ENTRANCE_HEIGHT = 30f;
+ 
+    // Where the student appears on campus after leaving: on the path in front of the Greggs door.
+    private static final float CAMPUS_RETURN_X = 606f;
+    private static final float CAMPUS_RETURN_Y = 690f;
+ 
+    // The sliding doors at the bottom of the shop. Walking into them takes the student back outside.
+    private static final float DOOR_X = 560f;
+    private static final float DOOR_Y = 0f;
+    private static final float DOOR_WIDTH = 160f;
+    private static final float DOOR_HEIGHT = 40f;
+ 
+    // Where the student appears in the shop: on the doormat, just inside the sliding doors.
+    private static final float ARRIVAL_X = 601f;
+    private static final float ARRIVAL_Y = 90f;
+ 
+    // The areas the student has to step on to enter or leave.
     private Rectangle entranceBounds;
-    private Rectangle exitBounds;
+    private Rectangle doorBounds;
 
+    // The key the student presses to go through a door.
+    private static final int INTERACT_KEY = Input.Keys.E;
+
+        // Whether the student is standing at a door they can use.
+    private boolean atEntrance;
+    private boolean atExit;
+ 
+    // The font used for the door prompts.
+    private BitmapFont promptFont;
+ 
     // Constructor: starts the student on the main map and creates the event and the event sprite.
     public EventArea() {
         this.inEventArea = false;
-        this.itemEvent = new Event(400, 300, 60, "You found something!", "PLACEHOLDER_ITEM_1");
-        this.eventSprite = loadEventSprite(); // Load the event sprite.
-        this.entranceBounds = new Rectangle(ENTRANCE_X, ENTRANCE_Y, SPRITE_SIZE, SPRITE_SIZE);
-        this.exitBounds = new Rectangle(EXIT_X, EXIT_Y, SPRITE_SIZE, SPRITE_SIZE);
+
+        // The dialog for this event. Each line shows for 3 seconds.
+        String[] firstEventDialog = {
+            "Welcome, Greggs is celebrating its 87th anniversary.",
+            "Wow your our first customer today, I wonder where everyone else is?",
+            "well please take our new anniversary sausage roll as a sample."
+        };
+
+        // The event is placed on the floor tiles in front of the cashier, so the dialog starts when the student walks up to the counter.
+        this.itemEvent = new Event(885, 550, 70, firstEventDialog, new SausageRoll());
+ 
+        // Load the shop map, the same way the campus map is loaded.
+        this.shopMap = new TmxMapLoader().load("maps/greggs.tmx");
+        this.shopRenderer = new OrthogonalTiledMapRenderer(shopMap);
+        this.shopCollisions = new CollisionMap(shopMap);
+ 
+        this.entranceBounds = new Rectangle(ENTRANCE_X, ENTRANCE_Y, ENTRANCE_WIDTH, ENTRANCE_HEIGHT);
+        this.doorBounds = new Rectangle(DOOR_X, DOOR_Y, DOOR_WIDTH, DOOR_HEIGHT);
+        this.promptFont = new BitmapFont(); // Initialise the default font for the door prompts.
     }
+    
 
-    // Load the texture for the event sprite.
-    private Texture loadEventSprite() {
-
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.YELLOW);
-        pixmap.fill();
-        Texture placeholder = new Texture(pixmap);
-        pixmap.dispose();
-        return placeholder;
-    }
-
-    // Move the student between maps and run the event. Called every frame.
-    public void update(Player player) {
-
-        // If the student steps on the sprite on the main map, go to the event area.
-        if (!inEventArea && player.getFeetBounds().overlaps(entranceBounds)) {
+    // Move the student between campus and the shop, and run the event. Called every frame.
+    public void update(Player player, Inventory inventory) {
+ 
+        // Check whether the student is standing at the Greggs door or the sliding doors.
+        atEntrance = !inEventArea && player.getFeetBounds().overlaps(entranceBounds);
+        atExit = inEventArea && player.getFeetBounds().overlaps(doorBounds);
+ 
+        boolean interactPressed = Gdx.input.isKeyJustPressed(INTERACT_KEY); // True on the frame E is pressed.
+ 
+        // If the student presses E at the Greggs door on campus, go into the shop.
+        if (atEntrance && interactPressed) {
             inEventArea = true;
-            player.setX(EXIT_X + SPRITE_SIZE + 100f); // Put the student away from the exit sprite so they don't go straight back.
+            atEntrance = false;
+            player.setX(ARRIVAL_X); // Put the student on the doormat, just inside the sliding doors.
+            player.setY(ARRIVAL_Y);
             return;
         }
-
-        // If the student steps on the sprite in the event area, go back to the main map.
-        if (inEventArea && player.getFeetBounds().overlaps(exitBounds)) {
+ 
+        // If the student presses E at the sliding doors, go back to campus.
+        if (atExit && interactPressed) {
             inEventArea = false;
-            player.setX(ENTRANCE_X - 100f); // Put the student to the left of the entrance sprite so they don't go straight back.
+            atExit = false;
+            player.setX(CAMPUS_RETURN_X); // Put the student on the path in front of the Greggs door.
+            player.setY(CAMPUS_RETURN_Y);
             return;
         }
-
-        // In the event area, check if the student is close to the event.
-        if (inEventArea) {
-            itemEvent.checkPlayerInRange(player.getCentreX(), player.getCentreY()); // Use the middle of the student.
-        }
-    }
-
-    // Fill the screen with the colour of the current map.
-    public void drawBackground() {
  
+        // In the shop, check if the student is close to the cashier.
         if (inEventArea) {
-            ScreenUtils.clear(0.3f, 0.5f, 0.7f, 1f); // Blue for the event area.
-        } else {
-            ScreenUtils.clear(0.4f, 0.7f, 0.4f, 1f); // Green for the main map.
+            itemEvent.checkPlayerInRange(player.getCentreX(), player.getCentreY(), inventory); // Use the middle of the student.
         }
     }
  
-    // Draw the sprite for the current map.
-    public void draw(SpriteBatch batch) {
+    // Return true while the student is inside the shop.
+    public boolean isInEventArea() {
+        return inEventArea;
+    }
+ 
+    // Get the shop's walls and counters so the student cannot walk through them.
+    public CollisionMap getShopCollisions() {
+        return shopCollisions;
+    }
+ 
+    // Get the renderer that draws the shop map.
+    public OrthogonalTiledMapRenderer getShopRenderer() {
+        return shopRenderer;
+    }
+ 
+    // Draw the door prompts, and the cashier dialog when the student is in the shop.
+    public void drawDialog(SpriteBatch batch) {
+ 
+        if (atEntrance) {
+            promptFont.draw(batch, "Press E to enter Greggs", ENTRANCE_X - 50f, ENTRANCE_Y + 60f); // Show the prompt just above the Greggs door.
+        }
+ 
+        if (atExit) {
+            promptFont.draw(batch, "Press E to leave", DOOR_X + 30f, DOOR_Y + 130f); // Show the prompt just above the sliding doors.
+        }
  
         if (inEventArea) {
-            batch.draw(eventSprite, EXIT_X, EXIT_Y, SPRITE_SIZE, SPRITE_SIZE); // The way back to the main map.
-            itemEvent.drawDialog(batch); // if the student is close for the message
-        } else {
-            batch.draw(eventSprite, ENTRANCE_X, ENTRANCE_Y, SPRITE_SIZE, SPRITE_SIZE); // The way into the event area.
+            itemEvent.drawDialog(batch); // Draw the cashier dialog if the student is close.
         }
     }
  
-    // optimisation for memory
+    // Free up memory when the game closes.
     public void dispose() {
         itemEvent.dispose();
-        eventSprite.dispose();
+        promptFont.dispose();
+        shopRenderer.dispose();
+        shopMap.dispose();
     }
 }
