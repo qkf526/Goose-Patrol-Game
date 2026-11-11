@@ -636,7 +636,6 @@ public class Player {
         }
     }
 
-
     private int getFacingColumn() {
 
         switch (facing) {
@@ -663,6 +662,13 @@ public class Player {
         completedItemUse = null;
 
         return finished;
+    }
+
+    public void resetToStart(float startX, float startY) {
+        resetHealth();                  // Already resets hurt and knockback.
+        x = startX;
+        y = startY;
+        equippedItem = null;
     }
 
 
