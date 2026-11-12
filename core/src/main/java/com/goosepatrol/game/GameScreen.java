@@ -3,10 +3,8 @@ package com.goosepatrol.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
@@ -50,10 +48,8 @@ public class GameScreen implements Screen {
     private int mapWidth;
     private int mapHeight;
 
-    // Health HUD
-    private Texture heartIcon;
-    private Texture hudPanel;
-    private BitmapFont healthFont;
+    // Hidden events found so far (shown on the HUD as x/2)
+    private int eventsFound = 0;
 
     // Inventory, geese and waves
     private InventoryController inventoryController;
@@ -67,15 +63,6 @@ public class GameScreen implements Screen {
     // ---------------------------------------------------------------------
     public GameScreen(GoosePatrolGame game) {
         this.game = game;
-
-        // Health HUD
-        heartIcon = new Texture(Gdx.files.internal("ui/heart_full.png"));
-        heartIcon.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-        healthFont = new BitmapFont();
-        healthFont.getData().setScale(1.5f);
-        healthFont.setColor(Color.WHITE);
-        hudPanel = new Texture(Gdx.files.internal("ui/hud_panel.png"));
-        hudPanel.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
         // Player and animations
         playerWalkSheet = new Texture(Gdx.files.internal("character/student_walk.png"));
@@ -134,7 +121,7 @@ public class GameScreen implements Screen {
 
         // PAUSE: hand over to PauseScreen. 'this' lets it return to this exact
         // game (same player, geese, timer) when Resume is pressed.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || gooseHUD.isPauseClicked()) {
             game.setScreen(new PauseScreen(game, this));
             return;
         }
@@ -143,15 +130,22 @@ public class GameScreen implements Screen {
 
         // WIN / LOSE: leave for good, so dispose first.
         if (gooseWaves.isFinished()) {
+            // Read everything the result screens need BEFORE disposing.
             boolean won = gooseWaves.getState() == GooseWaveManager.GameState.WON;
+            boolean timeUp = !player.isDefeated();   // lost without being defeated = clock ran out
+            int secondsLeft = gooseWaves.getSecondsRemaining();
+            int health = player.getHealth();
+            int maxHealth = player.getMaxHealth();
+            int itemsUsed = inventoryController.getInventory().getTotalItemsUsed();
+
             dispose();
 
             if (won) {
-                game.setScreen(new VictoryScreen(game));
+                game.setScreen(new WinScreen(game, secondsLeft, health, maxHealth, itemsUsed));
             } else {
-                game.setScreen(new GameOverScreen(game));
+                game.setScreen(new GameOverScreen(game, timeUp));
             }
-            return;
+            return;   // never draw with disposed resources
         }
 
         draw();
@@ -215,28 +209,11 @@ public class GameScreen implements Screen {
 
         game.batch.end();
 
-        drawHealthHUD();
         inventoryController.draw();
-        gooseHUD.draw(gooseWaves);
-    }
-
-    // Health and items-used counter, anchored to the top-left of the camera view
-    private void drawHealthHUD() {
-        float hudX = camera.position.x - viewport.getWorldWidth() / 2f + 20f;
-        float hudY = camera.position.y + viewport.getWorldHeight() / 2f - 48f;
-
-        String healthText = "HP: " + player.getHealth() + "/" + player.getMaxHealth();
-
-        game.batch.setProjectionMatrix(camera.combined);
-        game.batch.begin();
-        game.batch.draw(hudPanel, hudX - 10f, hudY - 37f, 160, 100);
-        game.batch.draw(heartIcon, hudX, hudY, 28f, 28f);
-        healthFont.setColor(Color.WHITE);
-        healthFont.draw(game.batch, healthText, hudX + 36f, hudY + 22f);
-
-        int itemsUsed = inventoryController.getInventory().getTotalItemsUsed();
-        healthFont.draw(game.batch, "Items used: " + itemsUsed, hudX, hudY - 10f);
-        game.batch.end();
+        gooseHUD.draw(gooseWaves,
+            player.getHealth(), player.getMaxHealth(),
+            inventoryController.getInventory().getTotalItemsUsed(),
+            eventsFound);
     }
 
     // ---------------------------------------------------------------------
@@ -264,6 +241,18 @@ public class GameScreen implements Screen {
 
         player.registerItemAnimations(item,
             new ItemAnimationSet(holdingFrames, standingFrames, movingFrames));
+    }
+
+    /** Call this when the player finds a hidden event. Capped at the total. */
+    public void eventFound() {
+        if (eventsFound < GooseHUD.TOTAL_EVENTS) {
+            eventsFound++;
+        }
+    }
+
+    /** Read-only access for the pause screen's inventory panel. */
+    public Inventory getInventory() {
+        return inventoryController.getInventory();
     }
 
     // ---------------------------------------------------------------------
@@ -303,10 +292,7 @@ public class GameScreen implements Screen {
         for (Texture texture : itemTextures) {
             texture.dispose();
         }
-        heartIcon.dispose();
-        hudPanel.dispose();
         seedTexture.dispose();
-        healthFont.dispose();
 
         gooseAnimations.dispose();
         gooseHUD.dispose();

@@ -1,11 +1,15 @@
 package com.goosepatrol.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 // This class is responsible for rendering the player's inventory on the screen.
@@ -15,6 +19,8 @@ public class InventoryUI implements Disposable {
     private final BitmapFont font;
     private final ShapeRenderer shapes;
     private final ScreenViewport viewport;
+    private final ObjectMap<ItemType, Texture> icons = new ObjectMap<>();
+
 
     public InventoryUI(Inventory inventory) {
         this.inventory = inventory;
@@ -24,6 +30,14 @@ public class InventoryUI implements Disposable {
         shapes = new ShapeRenderer();
         viewport = new ScreenViewport();
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        for (ItemType type : ItemType.values()) {
+            FileHandle file = Gdx.files.internal("ui/icons/" + type.name().toLowerCase() + ".png");
+            if (file.exists()) {
+                Texture icon = new Texture(file);
+                icon.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+                icons.put(type, icon);
+            }
+        }
     }
 
     public void draw() {
@@ -145,20 +159,34 @@ public class InventoryUI implements Disposable {
 
             // Draw the item name.
             // Always display the item name.
-            font.draw(batch,label,x + 6f * scale,startY + slotSize * 0.58f);
+            ItemType type = slot.getItem().getType();
+            Texture icon = type == null ? null : icons.get(type);
+            if (icon != null) {
+                batch.setColor(slot.getQuantity() > 0 ? Color.WHITE : Color.DARK_GRAY);
+                batch.draw(icon, x + slotSize * 0.14f, startY + slotSize * 0.22f, slotSize * 0.72f, slotSize * 0.72f);
+                batch.setColor(Color.WHITE);
+            } else {
+                font.draw(batch, label, x + 6f * scale, startY + slotSize * 0.58f);   // old text fallback
+            }
 
             // Draw the item quantity.
             font.draw(batch,"x" + slot.getQuantity(),x + 40f * scale,startY + 17f * scale);
         }
 
         font.setColor(Color.WHITE);
+        InventorySlot chosen = inventory.getSelectedSlot();
+        if (chosen != null) {
+            String name = chosen.getItem().getName().toUpperCase();
+            GlyphLayout nameLayout = new GlyphLayout(font, name);
+            font.draw(batch, name, (viewport.getWorldWidth() - nameLayout.width) / 2f, startY + slotSize + 24f * scale);
+        }
 
         batch.end();
 
     }
 
-    public void resize(int width, int height) { 
-        viewport.update(width, height, true); 
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
     }
 
     @Override
@@ -166,5 +194,9 @@ public class InventoryUI implements Disposable {
         batch.dispose();
         font.dispose();
         shapes.dispose();
+        for (Texture icon : icons.values())
+        {
+            icon.dispose();
+        }
     }
 }

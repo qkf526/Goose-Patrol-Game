@@ -1,126 +1,125 @@
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.math.Matrix4;
 
-public class PauseScreen implements Screen {
-    private final GoosePatrolGame game;
-    private final Screen previous;
-    private final ShapeRenderer shape;
-    private final Button resumeButton;      // returns paused game to exactly where it was
-    private final Button restartButton;     // restarts paused game, and takes to main menu
-    private final Button quitButton;        // closes application
-    private final Button controlsButton;    // opens controls
+/**
+ * Pause menu with a map and a live inventory panel.
+ * Keeps the running GameScreen alive so Resume continues exactly where the
+ * game stopped.
+ */
+public class PauseScreen extends UiScreen {
 
-    public PauseScreen(GoosePatrolGame game, Screen previous) {
-        this.game = game;
+    private final GameScreen previous;
+
+    private final ButtonMenu menu = new ButtonMenu(
+        new String[] {"RESUME", "RESTART", "TUTORIAL", "END GAME"},
+        40f, 470f, 240f, 44f, 28f);
+
+    public PauseScreen(GoosePatrolGame game, GameScreen previous) {
+        super(game);
         this.previous = previous;
-        this.shape = new ShapeRenderer();
-
-        // centre buttons horizontally
-        float w = 300;
-        float h = 100;
-        float x = (Gdx.graphics.getWidth() - w) / 2f;
-        resumeButton = new Button("Resume", x, 340, w, h);
-        controlsButton = new Button("Controls", x, 260, w, h);
-        restartButton = new Button("Main Menu", x, 180, w, h);
-        quitButton = new Button("Quit", x, 100, w, h);
-
     }
 
     @Override
-    public void render(float delta) {
-        // makes drawing cover whole window again
-        Gdx.gl.glViewport(0,0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+    protected void update(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.setScreen(previous);
+            return;
+        }
 
-        // setToOrtho2d() builds projection, 1 unit = 1 pixel (origin at bottom left)
-        Matrix4 screenMatrix = new Matrix4().setToOrtho2D(0,0,Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        // text and rectangles will be aligned
-        game.batch.setProjectionMatrix(screenMatrix);
-        shape.setProjectionMatrix(screenMatrix);
-        ScreenUtils.clear(0.1f, 0.1f, 0.15f, 1f);
-
-        float mousex = Gdx.input.getX();
-        float mousey = Gdx.graphics.getHeight() - Gdx.input.getY();
-
-
-        // shapes
-        shape.begin(ShapeRenderer.ShapeType.Filled);
-        resumeButton.drawShape(shape, resumeButton.contains(mousex, mousey));
-        restartButton.drawShape(shape, restartButton.contains(mousex, mousey));
-        quitButton.drawShape(shape, quitButton.contains(mousex, mousey));
-        controlsButton.drawShape(shape, controlsButton.contains(mousex, mousey));
-        shape.end();
-
-        // text
-        game.batch.begin();
-        game.font.draw(game.batch, "PAUSED", 100, 400);
-        resumeButton.drawText(game.batch, game.font);
-        restartButton.drawText(game.batch, game.font);
-        quitButton.drawText(game.batch, game.font);
-        controlsButton.drawText(game.batch, game.font);
-        game.batch.end();
-
-        if (Gdx.input.justTouched()) {
-            // back to same game
-            if (resumeButton.contains(mousex, mousey) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-                dispose();
+        switch (menu.update(mouseX, mouseY)) {
+            case 0:   // RESUME: same GameScreen, nothing lost
                 game.setScreen(previous);
-            }
-            // restart game
-            else if (restartButton.contains(mousex, mousey)) {
+                break;
+            case 1:   // RESTART: throw the old game away and start a fresh one
                 previous.dispose();
-                dispose();
+                game.setScreen(new GameScreen(game));
+                break;
+            case 2:   // TUTORIAL: come back here afterwards
+                game.setScreen(new TutorialScreen(game, this));
+                break;
+            case 3:   // END GAME: abandon the run
+                previous.dispose();
                 game.setScreen(new MenuScreen(game));
-            } else if (quitButton.contains(mousex, mousey)) {
-                Gdx.app.exit();
-            } else if (controlsButton.contains(mousex, mousey)) {
-                game.setScreen(new ControlsScreen(game, this));
-
-            }
+                break;
+            default:
+                break;
         }
     }
-    @Override
-    public void show()
-    {
 
+    @Override
+    protected void draw() {
+        background(".png", 0.35f);
+
+        text(game.titleFont, "PAUSED", 40f, 570f, GOLD);
+        menu.draw(this, false);
+        textCentered(game.smallFont, "ESC TO RESUME", 160f, 195f, Color.WHITE);
+        image(game.texture("ui/menu_student.png"), 100f, 30f, 80f, 110f);
+
+        // Map panel
+        panel(320f, 215f, 450f, 355f);
+        text(game.uiFont, "MAP", 336f, 558f, GOLD);
+        drawMap(336f, 225f, 418f, 290f);
+
+        // Inventory panel
+        panel(320f, 40f, 450f, 155f);
+        text(game.uiFont, "INVENTORY", 336f, 184f, GOLD);
+        drawInventory();
     }
 
-    @Override
-    public void resize(int width, int height)
-    {
+    // Fits the overview picture inside the box without stretching it.
+    private void drawMap(float x, float y, float boxW, float boxH) {
+        Texture map = game.texture("ui/campus_overview.png");
+        if (map == null) return;
+
+        float scale = Math.min(boxW / map.getWidth(), boxH / map.getHeight());
+        float w = map.getWidth() * scale;
+        float h = map.getHeight() * scale;
+        image(map, x + (boxW - w) / 2f, y + (boxH - h) / 2f, w, h);
     }
 
+    private void drawInventory() {
+        Inventory inventory = previous.getInventory();
 
-    /**
-     * app lost focus
-     */
-    @Override
-    public void pause()
-    {
-    }
+        for (int i = 0; i < inventory.getSize(); i++) {
+            InventorySlot slot = inventory.getSlot(i);
+            boolean selected = inventory.getSelectedSlot() == slot;
+            boolean empty = slot.getQuantity() <= 0;
 
+            float x = 345f + i * 108f;
+            float y = 80f;
+            float size = 60f;
 
-    /**
-     * app regained focus
-     */
-    @Override
-    public void resume()
-    {
-    }
+            // slot box
+            ShapeRenderer s = game.shapes;
+            s.begin(ShapeRenderer.ShapeType.Filled);
+            s.setColor(selected ? GOLD : Color.GRAY);
+            s.rect(x, y, size, size);
+            s.setColor(0.05f, 0.09f, 0.24f, 1f);
+            s.rect(x + 3f, y + 3f, size - 6f, size - 6f);
+            s.end();
 
-    @Override
-    public void hide()
-    {
-    }
+            // icon (falls back to the first letter until the art exists)
+            ItemType type = slot.getItem().getType();
+            Texture icon = type == null ? null
+                : game.texture("ui/icons/" + type.name().toLowerCase() + ".png");
+            if (icon != null) {
+                image(icon, x + 8f, y + 8f, size - 16f, size - 16f,
+                    empty ? Color.DARK_GRAY : Color.WHITE);
+            } else {
+                textCentered(game.uiFont, slot.getItem().getName().substring(0, 1),
+                    x + size / 2f, y + 42f, empty ? Color.GRAY : Color.WHITE);
+            }
 
-    @Override
-    public void dispose()
-    {
-        shape.dispose();
+            // slot number, quantity, name
+            text(game.smallFont, String.valueOf(i + 1), x + 6f, y + size - 4f, Color.WHITE);
+            textRight(game.smallFont, "x" + slot.getQuantity(), x + size - 5f, y + 20f, Color.WHITE);
+            textCentered(game.smallFont, slot.getItem().getName().toUpperCase(),
+                x + size / 2f, 74f, Color.WHITE);
+        }
     }
 }

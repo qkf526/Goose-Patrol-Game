@@ -2,109 +2,56 @@ package com.goosepatrol.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.Color;
 
-/**
- * implements screen promises to include all methods listed in screen interface
- * can be empty!!
- */
-public class MenuScreen implements Screen {
-    private final GoosePatrolGame game; // final means reference never changes after constructor
+/** Main menu: PLAY, TUTORIAL, QUIT. Keyboard and mouse. */
+public class MenuScreen extends UiScreen {
 
-    /**
-     * no create method -> constructor(game) does it
-     * @param game
-     */
-    public MenuScreen(GoosePatrolGame game)
-    {
-        this.game = game;
+    private final ButtonMenu menu = new ButtonMenu(
+        new String[] {"PLAY", "TUTORIAL", "QUIT"},
+        272f, 340f, 256f, 44f, 22f);
+
+    public MenuScreen(GoosePatrolGame game) {
+        super(game);
     }
 
-    /**
-     * called every frame while screen is active
-     * @param delta The time in seconds since the last render.
-     */
     @Override
-    public void render(float delta)
-    {
-        // wipes previous screen to prevemt smearing
-        ScreenUtils.clear(1f, 0.33f,0.78f,1f); // pink!!
-
-
-        // creates on screen text
-        game.batch.begin();
-        game.font.draw(game.batch, "MAIN MENU", 100, 300);
-        game.font.draw(game.batch, "Click to Start", 100, 240);
-        game.font.draw(game.batch, "Press T for Controls", 100, 180);
-        game.batch.end();
-
-        // justTouched() true for only one frame - action happens once not every frame
-        if (Gdx.input.justTouched())
-        {
-            game.setScreen(new GameScreen(game)); // makes new game screen so every play starts new
+    protected void update(float delta) {
+        switch (menu.update(mouseX, mouseY)) {
+            case 0:
+                game.setScreen(new GameScreen(game));
+                break;
+            case 1:
+                game.setScreen(new TutorialScreen(game, this));
+                break;
+            case 2:
+                Gdx.app.exit();
+                break;
+            default:
+                break;
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.T))
-        {
-            game.setScreen(new ControlsScreen(game, this));
+
+        // keep the old shortcut
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            game.setScreen(new TutorialScreen(game, this));
         }
     }
 
-
-
-    // all required by implements screen but not needed yet - empty
-
-    /**
-     * screen became active
-     */
     @Override
-    public void show()
-    {
-    }
+    protected void draw() {
+        background(".png", 0f);
 
-    /**
-     * window size changed
-     * @param width
-     * @param height
-     */
-    @Override
-    public void resize(int width, int height)
-    {
-    }
+        textCentered(game.titleFont, "GOOSEAGEDDON", W / 2f, 560f, GOLD);
+        textCentered(game.uiFont, "DEFEAT THE FLOCK. BEAT THE CLOCK. CATCH THE BUS!",
+            W / 2f, 485f, Color.WHITE);
 
+        image(game.texture("ui/menu_student.png"), 90f, 220f, 120f, 150f);
+        image(game.texture("ui/menu_geese.png"), 590f, 150f, 150f, 180f);
 
-    /**
-     * app lost focus
-     */
-    @Override
-    public void pause()
-    {
-    }
+        menu.draw(this, true);
 
-
-    /**
-     * app regained focus
-     */
-    @Override
-    public void resume()
-    {
-    }
-
-
-    /**
-     * another screen replaced current
-     */
-    @Override
-    public void hide()
-    {
-    }
-
-
-    /**
-     * nothing owned so nothing to free yet
-     */
-    @Override
-    public void dispose()
-    {
+        text(game.uiFont, "TEAM 8 - COHORT 4", 30f, 50f, Color.WHITE);
+        textRight(game.smallFont, "ENTER   SELECT OPTION", W - 30f, 85f, Color.WHITE);
+        textRight(game.smallFont, "UP/DOWN   NAVIGATE MENU", W - 30f, 55f, Color.WHITE);
     }
 }
