@@ -1,185 +1,125 @@
-
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
-public class PauseScreen extends ScreenAdapter {
+/**
+ * Pause menu with a map and a live inventory panel.
+ * Keeps the running GameScreen alive so Resume continues exactly where the
+ * game stopped.
+ */
+public class PauseScreen extends UiScreen {
 
-    private static final float WIDTH = 1448f;
-    private static final float HEIGHT = 1086f;
+    private final GameScreen previous;
 
-    private static final int OPTION_COUNT = 4;
+    private final ButtonMenu menu = new ButtonMenu(
+        new String[] {"RESUME", "RESTART", "TUTORIAL", "END GAME"},
+        40f, 470f, 240f, 44f, 28f);
 
-    // Arrow position and size.
-    private static final float ARROW_X = 14f;
-    private static final float ARROW_SIZE = 45f;
-
-    // Button centre positions in the artwork.
-    private static final float[] BUTTON_Y = {
-        768f, // Resume
-        646f, // Restart
-        519f, // Tutorial
-        392f  // End Game
-    };
-
-    private final GoosePatrolGame game;
-    private final SpriteBatch batch;
-    private final FitViewport viewport;
-
-    private final Texture background;
-    private final Texture selectionArrow;
-
-    private int selectedOption = 0;
-
-    public PauseScreen(GoosePatrolGame game) {
-
-        this.game = game;
-
-        batch = new SpriteBatch();
-
-        viewport = new FitViewport(
-            WIDTH, HEIGHT
-        );
-
-        background = new Texture(
-            Gdx.files.internal("menu/pause_menu.png")
-        );
-
-        background.setFilter(
-            Texture.TextureFilter.Nearest,
-            Texture.TextureFilter.Nearest
-        );
-
-        selectionArrow = MenuArrow.create();
-    }
-
-
-    @Override
-    public void show() {
-
-        // Default to Resume when opening Pause.
-        selectedOption = 0;
+    public PauseScreen(GoosePatrolGame game, GameScreen previous) {
+        super(game);
+        this.previous = previous;
     }
 
     @Override
-    public void render(float delta) {
-
-        if (handleInput()) {
+    protected void update(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.setScreen(previous);
             return;
         }
 
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        viewport.apply();
-
-        batch.setProjectionMatrix(
-            viewport.getCamera().combined
-        );
-
-        batch.begin();
-
-        // Draw the complete static Pause Menu image.
-        batch.draw(
-            background,
-            0f,
-            0f,
-            WIDTH,
-            HEIGHT
-        );
-
-        // Move arrow to the selected button.
-        float centreY = BUTTON_Y[selectedOption];
-
-        batch.draw(
-            selectionArrow,
-            ARROW_X,
-            centreY - ARROW_SIZE / 2f,
-            ARROW_SIZE,
-            ARROW_SIZE
-        );
-
-        batch.end();
+        switch (menu.update(mouseX, mouseY)) {
+            case 0:   // RESUME: same GameScreen, nothing lost
+                game.setScreen(previous);
+                break;
+            case 1:   // RESTART: throw the old game away and start a fresh one
+                previous.dispose();
+                game.setScreen(new GameScreen(game));
+                break;
+            case 2:   // TUTORIAL: come back here afterwards
+                game.setScreen(new TutorialScreen(game, this));
+                break;
+            case 3:   // END GAME: abandon the run
+                previous.dispose();
+                game.setScreen(new MenuScreen(game));
+                break;
+            default:
+                break;
+        }
     }
 
-    private boolean handleInput() {
+    @Override
+    protected void draw() {
+        background(".png", 0.35f);
 
-        // ESC immediately resumes the game.
-        if (Gdx.input.isKeyJustPressed(
-            Input.Keys.ESCAPE)) {
+        text(game.titleFont, "PAUSED", 40f, 570f, GOLD);
+        menu.draw(this, false);
+        textCentered(game.smallFont, "ESC TO RESUME", 160f, 195f, Color.WHITE);
+        image(game.texture("ui/menu_student.png"), 100f, 30f, 80f, 110f);
 
-            game.resumeGame();
-            return true;
-        }
+        // Map panel
+        panel(320f, 215f, 450f, 355f);
+        text(game.uiFont, "MAP", 336f, 558f, GOLD);
+        drawMap(336f, 225f, 418f, 290f);
 
-        // Move the selection upwards.
-        if (Gdx.input.isKeyJustPressed(
-            Input.Keys.UP)) {
+        // Inventory panel
+        panel(320f, 40f, 450f, 155f);
+        text(game.uiFont, "INVENTORY", 336f, 184f, GOLD);
+        drawInventory();
+    }
 
-            selectedOption =
-                (selectedOption - 1 + OPTION_COUNT)
-                % OPTION_COUNT;
-        }
+    // Fits the overview picture inside the box without stretching it.
+    private void drawMap(float x, float y, float boxW, float boxH) {
+        Texture map = game.texture("ui/campus_overview.png");
+        if (map == null) return;
 
-        // Move the selection downwards.
-        if (Gdx.input.isKeyJustPressed(
-            Input.Keys.DOWN)) {
+        float scale = Math.min(boxW / map.getWidth(), boxH / map.getHeight());
+        float w = map.getWidth() * scale;
+        float h = map.getHeight() * scale;
+        image(map, x + (boxW - w) / 2f, y + (boxH - h) / 2f, w, h);
+    }
 
-            selectedOption =
-                (selectedOption + 1)
-                % OPTION_COUNT;
-        }
+    private void drawInventory() {
+        Inventory inventory = previous.getInventory();
 
-        // Select the highlighted option.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
-            || Gdx.input.isKeyJustPressed(
-                Input.Keys.NUMPAD_ENTER)) {
+        for (int i = 0; i < inventory.getSize(); i++) {
+            InventorySlot slot = inventory.getSlot(i);
+            boolean selected = inventory.getSelectedSlot() == slot;
+            boolean empty = slot.getQuantity() <= 0;
 
-            switch (selectedOption) {
+            float x = 345f + i * 108f;
+            float y = 80f;
+            float size = 60f;
 
-                case 0:
-                    // Resume existing gameplay.
-                    game.resumeGame();
-                    return true;
+            // slot box
+            ShapeRenderer s = game.shapes;
+            s.begin(ShapeRenderer.ShapeType.Filled);
+            s.setColor(selected ? GOLD : Color.GRAY);
+            s.rect(x, y, size, size);
+            s.setColor(0.05f, 0.09f, 0.24f, 1f);
+            s.rect(x + 3f, y + 3f, size - 6f, size - 6f);
+            s.end();
 
-                case 1:
-                    // Restart the entire match.
-                    game.startNewGame();
-                    return true;
-
-                case 2:
-                    game.openTutorial();
-                    return true;
-
-                case 3:
-                    // End the match and return to menu.
-                    game.endGameToMenu();
-                    return true;
+            // icon (falls back to the first letter until the art exists)
+            ItemType type = slot.getItem().getType();
+            Texture icon = type == null ? null
+                : game.texture("ui/icons/" + type.name().toLowerCase() + ".png");
+            if (icon != null) {
+                image(icon, x + 8f, y + 8f, size - 16f, size - 16f,
+                    empty ? Color.DARK_GRAY : Color.WHITE);
+            } else {
+                textCentered(game.uiFont, slot.getItem().getName().substring(0, 1),
+                    x + size / 2f, y + 42f, empty ? Color.GRAY : Color.WHITE);
             }
+
+            // slot number, quantity, name
+            text(game.smallFont, String.valueOf(i + 1), x + 6f, y + size - 4f, Color.WHITE);
+            textRight(game.smallFont, "x" + slot.getQuantity(), x + size - 5f, y + 20f, Color.WHITE);
+            textCentered(game.smallFont, slot.getItem().getName().toUpperCase(),
+                x + size / 2f, 74f, Color.WHITE);
         }
-
-        return false;
     }
-
-
-    @Override
-    public void resize(int width, int height) {
-
-        viewport.update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
-
-        batch.dispose();
-        background.dispose();
-        selectionArrow.dispose();
-    }
-
 }
