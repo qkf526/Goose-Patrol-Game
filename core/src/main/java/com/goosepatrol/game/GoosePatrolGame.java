@@ -238,9 +238,13 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         // Inside Greggs, the whole shop fits on screen, so keep the camera still in the middle of it.
         if (eventArea.isInEventArea()) {
+            camera.zoom = Math.min(EventArea.SHOP_WIDTH / VIEW_WIDTH, EventArea.SHOP_HEIGHT / VIEW_HEIGHT);
             cameraX = EventArea.SHOP_WIDTH / 2f;
             cameraY = EventArea.SHOP_HEIGHT / 2f;
+        } else {
+            camera.zoom = 1f; // Normal size on campus.
         }
+
         camera.position.set(cameraX, cameraY, 0f); // Set the camera's position to follow the player.
         camera.update(); // Update the camera to apply the new position.
 
