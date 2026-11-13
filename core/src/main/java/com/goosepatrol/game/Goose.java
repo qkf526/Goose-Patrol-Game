@@ -273,4 +273,3 @@ public class Goose {
         animationTime = 0f;
     }
 }
-
