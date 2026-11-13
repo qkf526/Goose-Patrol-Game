@@ -236,6 +236,11 @@ public class GoosePatrolGame extends ApplicationAdapter {
         float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, currentWidth - halfWidth); // Clamp the camera's x-coordinate to follow the player while staying within map bounds.
         float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, currentHeight - halfHeight); // Clamp the camera's y-coordinate to follow the player while staying within map bounds.
 
+        // Inside Greggs, the whole shop fits on screen, so keep the camera still in the middle of it.
+        if (eventArea.isInEventArea()) {
+            cameraX = EventArea.SHOP_WIDTH / 2f;
+            cameraY = EventArea.SHOP_HEIGHT / 2f;
+        }
         camera.position.set(cameraX, cameraY, 0f); // Set the camera's position to follow the player.
         camera.update(); // Update the camera to apply the new position.
 
@@ -302,6 +307,10 @@ public class GoosePatrolGame extends ApplicationAdapter {
         }
 
         batch.end();
+
+        // Draw the HUD at its normal size, even when zoomed out inside Greggs.
+        camera.zoom = 1f;
+        camera.update();
 
         drawHealthHUD(); // Draw the player's health on the HUD.
 

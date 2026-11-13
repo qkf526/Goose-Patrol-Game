@@ -24,8 +24,8 @@ public class EventArea {
     private CollisionMap shopCollisions;
  
     // The size of the Greggs shop map, in pixels.
-    public static final int SHOP_WIDTH = 1280;
-    public static final int SHOP_HEIGHT = 960;
+    public static final int SHOP_WIDTH = 640;
+    public static final int SHOP_HEIGHT = 480;
  
     // The Greggs front door on the campus map. Walking into it takes the student inside.
     private static final float ENTRANCE_X = 615f;
@@ -38,14 +38,14 @@ public class EventArea {
     private static final float CAMPUS_RETURN_Y = 690f;
  
     // The sliding doors at the bottom of the shop. Walking into them takes the student back outside.
-    private static final float DOOR_X = 560f;
+    private static final float DOOR_X = 280f;
     private static final float DOOR_Y = 0f;
-    private static final float DOOR_WIDTH = 160f;
-    private static final float DOOR_HEIGHT = 40f;
+    private static final float DOOR_WIDTH = 80f;
+    private static final float DOOR_HEIGHT = 20f;
  
     // Where the student appears in the shop: on the doormat, just inside the sliding doors.
-    private static final float ARRIVAL_X = 601f;
-    private static final float ARRIVAL_Y = 90f;
+    private static final float ARRIVAL_X = 281f;
+    private static final float ARRIVAL_Y = 25f;
  
     // The areas the student has to step on to enter or leave.
     private Rectangle entranceBounds;
@@ -73,7 +73,8 @@ public class EventArea {
         };
 
         // The event is placed on the floor tiles in front of the cashier, so the dialog starts when the student walks up to the counter.
-        this.itemEvent = new Event(885, 550, 70, firstEventDialog, new SausageRoll());
+        this.itemEvent = new Event(442, 300, 45, firstEventDialog, new SausageRoll());
+        this.itemEvent.setSpeakerPosition(442, 377); // Show the chat box above the cashier's head.
  
         // Load the shop map, the same way the campus map is loaded.
         this.shopMap = new TmxMapLoader().load("maps/greggs.tmx");
