@@ -1,7 +1,6 @@
 
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -66,8 +65,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
     private GooseHUD gooseHUD;
     private GooseAnimations gooseAnimations;
     private Texture seedTexture;
-
-    private Music bgMusic;
 
     // Called when the application is first created. Used to initialize game resources.
     @Override
@@ -142,11 +139,6 @@ public class GoosePatrolGame extends ApplicationAdapter {
 
         System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
     
-        // Loding and playing background music
-        bgMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/roa-music-walk-around(chosic.com).mp3"));
-        bgMusic.setLooping(true);
-        bgMusic.setVolume(0.5f);
-        bgMusic.play(); 
     }
 
 
@@ -385,8 +377,5 @@ public class GoosePatrolGame extends ApplicationAdapter {
         gooseAnimations.dispose();
         seedTexture.dispose();
 
-        if (bgMusic != null) {
-            bgMusic.dispose();
-        }
     }
 }
