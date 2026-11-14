@@ -17,7 +17,7 @@ public class InventoryController implements Disposable {
         // Preload the player's inventory with some items.
         inventory.addItem(new Seeds(), 10);
         inventory.addItem(new AirHorn(), 5);
-        inventory.addItem(new Bandage(), 3);
+        inventory.addItem(new Bandage(), 2);
         inventory.addItem(new SausageRoll(), 2);
 
         this.ui = new InventoryUI(inventory);
