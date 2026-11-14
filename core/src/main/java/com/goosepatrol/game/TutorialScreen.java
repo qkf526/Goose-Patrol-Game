@@ -1,312 +1,108 @@
+
 package com.goosepatrol.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 /**
- * Six-page tutorial, one page at a time.
- *
- * Opened from the main menu or the pause screen. 'previous' is whichever
- * screen opened it. SKIP and ESC go back to it. The last button starts the
- * game if we came from the menu, otherwise it returns to the pause screen.
- *
- * Keys: RIGHT / ENTER = next, LEFT = back, ESC = leave.
+ * ehole screen is one image, drawn and waits for player ot leave
  */
-public class TutorialScreen extends UiScreen {
+public class TutorialScreen extends ScreenAdapter {
 
-    private static final int PAGES = 6;
+    private static final float WIDTH = 1448f;
+    private static final float HEIGHT = 1086f;
 
-    private static final boolean EVENTS = false;
-
-    // headings, indexed by num
-    private static final String[] TITLES = {
-        "WELCOME!", "MOVING", "WATCH OUT FOR GEESE", "ITEMS", "YOUR SCREEN", "READY?"
-    };
-
-    private final Screen previous;
-    private final Rectangle backBounds = new Rectangle(85f, 80f, 150f, 40f);
-    private final Rectangle nextBounds = new Rectangle(565f, 80f, 150f, 40f);
-    private final Rectangle skipBounds = new Rectangle(615f, 505f, 100f, 26f);
-    private final GlyphLayout layout = new GlyphLayout();
-    private int page = 0;
+    private final GoosePatrolGame game;
+    private final SpriteBatch batch;
+    private final FitViewport viewport;
+    private final Texture background;
 
     /**
-     * creates tutorial, starting on page 1
+     * creates tutorial screen: its own batch and viewport, and artwork
      *
-     * @param game game, used for screen changes
-     * @param previous screen that opened tutorial
+     * @param game game, used to return to previous screen and play menu sound
      */
-    public TutorialScreen(GoosePatrolGame game, Screen previous) {
-        super(game);
-        this.previous = previous;
+    public TutorialScreen(GoosePatrolGame game) {
+
+        this.game = game;
+
+        batch = new SpriteBatch();
+
+        viewport = new FitViewport(WIDTH, HEIGHT);
+
+        background = new Texture(
+            Gdx.files.internal("menu/tutorial.png")
+        );
+
+        background.setFilter(
+            Texture.TextureFilter.Nearest,
+            Texture.TextureFilter.Nearest
+        );
     }
 
     /**
-     * handles keyboard + mouse feedback
+     * allows return to previous screen
      *
-     * @param delta seconds since last frame
+     * @param delta time in seconds since the last render.
      */
     @Override
-    protected void update(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.setScreen(previous);
+    public void render(float delta) {
+
+        // Enter or Escape returns to the previous screen.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
+            || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+            || Gdx.input.isKeyJustPressed(
+                Input.Keys.NUMPAD_ENTER)) {
+
+            game.backFromTutorial();
+            game.getSounds().playMenuSelect();
             return;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
-            || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            next();
-            return;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT) && page > 0) {
-            page--;
         }
 
-        if (Gdx.input.justTouched()) {
-            if (skipBounds.contains(mouseX, mouseY)) {
-                game.setScreen(previous);
-            } else if (page > 0 && backBounds.contains(mouseX, mouseY)) {
-                page--;
-            } else if (nextBounds.contains(mouseX, mouseY)) {
-                next();
-            }
-        }
+        // Clear the screen.
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        viewport.apply();
+
+        batch.setProjectionMatrix(
+            viewport.getCamera().combined
+        );
+
+        batch.begin();
+
+        batch.draw(
+            background,
+            0f,
+            0f,
+            WIDTH,
+            HEIGHT
+        );
+
+        batch.end();
     }
 
     /**
-     * goes to next page
-     * starts new game if tutorial was opened from main menu,otherwise returns to previosu screen
-     */
-    private void next() {
-        if (page < PAGES - 1) {
-            page++;
-        } else if (previous instanceof MenuScreen) {
-            game.setScreen(new GameScreen(game));   // "START!"
-        } else {
-            game.setScreen(previous);               // "DONE"
-        }
-    }
-
-    /**
-     * draws everything shared by all pages
+     * called when window chanegs size, rescales image to fit
+     * @param width new width
+     * @param height new height
      */
     @Override
-    protected void draw() {
-        background("ui/menu_blur.png", 0.45f);
-        panel(60f, 60f, 680f, 480f);
-
-        text(game.smallFont, "TUTORIAL " + (page + 1) + "/" + PAGES, 85f, 525f, Color.LIGHT_GRAY);
-        textRight(game.smallFont, "SKIP >", 715f, 525f,
-            skipBounds.contains(mouseX, mouseY) ? Color.WHITE : GOLD);
-
-        textCentered(game.titleFont, TITLES[page], W / 2f, 500f, GOLD);
-
-        switch (page) {
-            case 0: drawWelcome(); break;
-            case 1: drawMoving(); break;
-            case 2: drawGeese(); break;
-            case 3: drawItems(); break;
-            case 4: drawScreenTour(); break;
-            default: drawReady(); break;
-        }
-
-        drawDots();
-
-        if (page > 0) {
-            drawButton(backBounds, "< BACK", backBounds.contains(mouseX, mouseY));
-        }
-        String last = previous instanceof MenuScreen ? "START!" : "DONE";
-        drawButton(nextBounds, page == PAGES - 1 ? last : "NEXT >",
-            nextBounds.contains(mouseX, mouseY));
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
     }
 
     /**
-     * page 1
+     * frees batch and artwork
      */
-    private void drawWelcome() {
-        image(game.texture("ui/menu_student.png"), 250f, 340f, 70f, 90f);
-        image(game.texture("ui/clock.png"), 365f, 345f, 70f, 70f);
-        image(game.texture("ui/menu_geese.png"), 470f, 340f, 80f, 96f);
-
-        body(260f, "DISPERSE EVERY WAVE OF GEESE", Color.WHITE);
-        body(230f, "BEFORE THE TIMER RUNS OUT.", Color.WHITE);
-        body(200f, "USE YOUR ITEMS TO SEE THEM OFF.", Color.WHITE);
-        if (EVENTS) {
-            body(170f, "THERE ARE HIDDEN EVENTS TO FIND, TOO!", Color.WHITE);
-        }
-    }
-
-    /**
-     * page 2
-     */
-    private void drawMoving() {
-        keycap(285f, 405f, 36f, 30f, "W");
-        keycap(245f, 369f, 36f, 30f, "A");
-        keycap(285f, 369f, 36f, 30f, "S");
-        keycap(325f, 369f, 36f, 30f, "D");
-        textCentered(game.smallFont, "MOVE", 303f, 358f, Color.WHITE);
-
-        image(game.texture("ui/menu_student.png"), 395f, 345f, 60f, 85f);
-
-        keycap(500f, 387f, 64f, 30f, "ESC");
-        textCentered(game.smallFont, "PAUSE", 532f, 358f, Color.WHITE);
-
-        body(260f, "WALK AROUND WITH W A S D.", Color.WHITE);
-        body(225f, "PRESS ESC TO PAUSE AND RESUME.", GOLD);
-    }
-
-    /**
-     * page 3
-     */
-    private void drawGeese() {
-        image(game.texture("ui/menu_geese.png"), 200f, 340f, 80f, 96f);
-        image(game.texture("ui/menu_student.png"), 330f, 340f, 60f, 90f);
-
-        // Energy bar, same look as the in-game meter, shown at 60%
-        float barX = 430f;
-        float barY = 384f;
-        float barW = 160f;
-        float barH = 24f;
-        game.shapes.begin(ShapeRenderer.ShapeType.Filled);
-        game.shapes.setColor(GOLD);
-        game.shapes.rect(barX, barY, barW, barH);
-        game.shapes.setColor(0.03f, 0.05f, 0.08f, 1f);
-        game.shapes.rect(barX + 2f, barY + 2f, barW - 4f, barH - 4f);
-        game.shapes.setColor(0.25f, 0.80f, 0.30f, 1f);
-        game.shapes.rect(barX + 2f, barY + 2f, (barW - 4f) * 0.6f, barH - 4f);
-        game.shapes.end();
-        textCentered(game.smallFont, "ENERGY", barX + barW / 2f, 372f, Color.WHITE);
-
-        body(260f, "THE GEESE COME IN WAVES AND PECK.", Color.WHITE);
-        body(230f, "EACH PECK DRAINS YOUR ENERGY.", Color.WHITE);
-        body(200f, "LOSE ALL YOUR ENERGY AND IT'S OVER.", Color.WHITE);
-    }
-
-    /**
-     * page 4
-     */
-    private void drawItems() {
-        String[] names = {"SEEDS", "AIR HORN", "BANDAGE", "SAUSAGE ROLL"};
-        String[] effects = {"DISTRACTS GEESE", "SCARES GEESE", "RESTORES 2 ENERGY", "FULL ENERGY"};
-        ItemType[] types = {ItemType.SEEDS, ItemType.AIR_HORN, ItemType.BANDAGE, ItemType.SAUSAGE_ROLL};
-
-        for (int i = 0; i < 4; i++) {
-            float cx = 175f + i * 150f;
-            keycap(cx - 14f, 400f, 28f, 28f, String.valueOf(i + 1));
-            image(game.texture("ui/icons/" + types[i].name().toLowerCase() + ".png"),
-                cx - 28f, 338f, 56f, 56f);
-            textCentered(game.smallFont, names[i], cx, 332f, Color.WHITE);
-            textCentered(game.smallFont, effects[i], cx, 314f, GOLD);
-        }
-
-        keycap(350f, 255f, 100f, 28f, "SPACE");
-        body(235f, "PRESS 1, 2, 3 OR 4 TO PICK AN ITEM.", Color.WHITE);
-        body(205f, "THEN PRESS SPACE TO USE IT.", Color.WHITE);
-    }
-
-    /**
-     * page 5
-     */
-    private void drawScreenTour() {
-        // Frame for a gameplay screenshot (assets/ui/tutorial_hud.png, optional)
-        game.shapes.begin(ShapeRenderer.ShapeType.Filled);
-        game.shapes.setColor(GOLD);
-        game.shapes.rect(238f, 288f, 324f, 154f);
-        game.shapes.setColor(0.13f, 0.25f, 0.15f, 1f);
-        game.shapes.rect(240f, 290f, 320f, 150f);
-        game.shapes.end();
-        image(game.texture("ui/tutorial_hud.png"), 240f, 290f, 320f, 150f);
-
-        text(game.smallFont, "TIMER", 85f, 425f, Color.WHITE);
-        text(game.smallFont, "ENERGY", 85f, 400f, Color.WHITE);
-        text(game.smallFont, "ITEMS", 85f, 315f, Color.WHITE);
-        textRight(game.smallFont, "PAUSE", 715f, 425f, Color.WHITE);
-
-        body(260f, "KEEP AN EYE ON THE TIMER.", Color.WHITE);
-        body(230f, "YOUR ENERGY AND YOUR ITEMS.", Color.WHITE);
-    }
-
-    /**
-     * page 6
-     */
-    private void drawReady() {
-        float y = 410f;
-        keyRow(y, new String[] {"W", "A", "S", "D"}, 32f, "MOVE");
-        y -= 40f;
-        keyRow(y, new String[] {"1", "2", "3", "4"}, 32f, "PICK ITEM");
-        y -= 40f;
-        keyRow(y, new String[] {"SPACE"}, 100f, "USE ITEM");
-        y -= 40f;
-        if (EVENTS) {
-            keyRow(y, new String[] {"E"}, 32f, "TRIGGER EVENT");
-            y -= 40f;
-        }
-        keyRow(y, new String[] {"ESC"}, 64f, "PAUSE / RESUME");
-
-        body(210f, EVENTS ? "FIND THE HIDDEN EVENTS. GOOD LUCK!" : "GOOD LUCK!", GOLD);
-    }
-
-
-    /**
-     * draws 1 line of text
-     * @param top y pos of top of text
-     * @param line text to draw
-     * @param color text colour
-     */
-    private void body(float top, String line, Color color) {
-        textCentered(game.uiFont, line, W / 2f, top, color);
-    }
-
-
-    /**
-     * draws row of keycaps
-     * @param y bottom edge of keycaps
-     * @param keys label for each keycap
-     * @param keyW width of each keyca
-     * @param label action the key performs
-     */
-    private void keyRow(float y, String[] keys, float keyW, String label) {
-        for (int i = 0; i < keys.length; i++) {
-            keycap(240f + i * (keyW + 4f), y, keyW, 30f, keys[i]);
-        }
-        layout.setText(game.uiFont, label);
-        text(game.uiFont, label, 470f, y + (30f + layout.height) / 2f, Color.WHITE);
-    }
-
-    /**
-     * draws single keyoard key
-     * @param x left edge
-     * @param y bottom edge
-     * @param w width
-     * @param h height
-     * @param label text on the key
-     */
-    private void keycap(float x, float y, float w, float h, String label) {
-        game.shapes.begin(ShapeRenderer.ShapeType.Filled);
-        game.shapes.setColor(Color.DARK_GRAY);
-        game.shapes.rect(x, y, w, h);
-        game.shapes.setColor(Color.LIGHT_GRAY);
-        game.shapes.rect(x + 2f, y + 2f, w - 4f, h - 4f);
-        game.shapes.end();
-
-        layout.setText(game.smallFont, label);
-        text(game.smallFont, label,
-            x + (w - layout.width) / 2f, y + (h + layout.height) / 2f, Color.BLACK);
-    }
-
-    /**
-     * draws 1 square per page along bottom, current in gold
-     */
-    private void drawDots() {
-        game.shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < PAGES; i++) {
-            game.shapes.setColor(i == page ? GOLD : Color.GRAY);
-            game.shapes.rect(400f - PAGES * 9f + i * 18f + 4f, 96f, 8f, 8f);
-        }
-        game.shapes.end();
+    @Override
+    public void dispose() {
+        batch.dispose();
+        background.dispose();
     }
 }

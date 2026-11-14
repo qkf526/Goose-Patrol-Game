@@ -5,9 +5,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 
-//Class that draws the arrows that point to the menu the user has currently selected.
+/**
+ * builds gold selection arrow that points to highlighted button
+ */
 public class MenuArrow {
 
+    /**
+     * creates new arrow texture
+     * @return new arrow texture
+     */
     public static Texture create() {
 
         Pixmap pixmap = new Pixmap(
