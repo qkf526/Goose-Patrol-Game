@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 
-// A goose enemy that chases the player, pecks them, and can be distracted by seeds or frightened by a horn.
+// A class that creates a goose enemy that chases the player, pecks them, and can be distracted by seeds or frightened by a horn.
 public class Goose {
     // The goose's current state, which determines its behavior and animation.
     public enum State {CHASING, PECKING, GOING_TO_SEEDS, EATING, FLEEING, GONE} 
@@ -273,4 +273,3 @@ public class Goose {
         animationTime = 0f;
     }
 }
-

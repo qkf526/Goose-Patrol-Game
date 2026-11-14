@@ -1,16 +1,15 @@
 
 package com.goosepatrol.game;
 
-import java.util.EnumMap;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.graphics.Color;
+import java.util.EnumMap;
 
 
 public class Player {
@@ -228,6 +227,16 @@ public class Player {
 
         x = MathUtils.clamp(x, 0f, maxX); // Clamp the x-coordinate to stay within the window bounds.
         y = MathUtils.clamp(y, 0f, maxY); // Clamp the y-coordinate to stay within the window bounds.
+    }
+
+    // Set the student's x-coordinate when moving between maps.
+    public void setX(float x) {
+        this.x = x;
+    }
+
+    // Set the student's y-coordinate when moving between maps.
+    public void setY(float y) {
+        this.y = y;
     }
 
 
@@ -560,11 +569,6 @@ public class Player {
     public boolean isUsingItem() {
         return usingItem;
     }
-
-    public boolean isMoving() {
-        return moving;
-    }
-
 
 
 

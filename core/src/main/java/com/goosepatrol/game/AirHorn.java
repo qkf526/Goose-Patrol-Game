@@ -7,7 +7,7 @@ public class AirHorn extends Item {
         super(ItemType.AIR_HORN, "Air Horn", "Scares nearby geese away");
     }
 
-    //distance calculation for future Goose AI.
+    //distance calculation for Goose.
     public boolean isGooseInRange(float playerX, float playerY,
                                   float gooseX, float gooseY) {
         float dx = gooseX - playerX;

@@ -75,42 +75,8 @@ public class GooseHUD implements Disposable {
 
         waveFont.draw( batch, statusText, x, top - 30f * scale);
         batch.end();
-
-        if (waves.getState() != GooseWaveManager.GameState.PLAYING) {
-            drawMessage(waves, width, height, scale);
-        }
     }
-    // Method that draws the paused screen and the game over screen
-    private void drawMessage(GooseWaveManager waves, float width, float height, float scale) {
-        float panelW = Math.min(width - 24f, 405f * scale);
-        float panelH = 94f * scale;
-        float x = (width - panelW) / 2f;
-        float y = (height - panelH) / 2f;
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0.07f, 0.11f, 0.16f, 1f);
-        shapes.rect(x, y, panelW, panelH);
-        shapes.end();
-
-        String headline;
-        String instruction;
-        if (waves.getState() == GooseWaveManager.GameState.PAUSED) {
-            headline = "GOOSE PATROL";
-            instruction = "ENTER: start/resume    ESC: pause";
-        } else if (waves.getState() == GooseWaveManager.GameState.WON) {
-            headline = "ALL GEESE DISPERSED!";
-            instruction = "You made it to the bus!  R: restart";
-        } else {
-            headline = "GAME OVER";
-            instruction = "Out of health or time.  R: restart";
-        }
-        waveFont.getData().setScale(1.3f * scale);
-        waveFont.setColor(Color.WHITE);
-        batch.begin();
-        waveFont.draw(batch, headline, x + 14f * scale, y + 65f * scale);
-        waveFont.getData().setScale(0.95f * scale);
-        waveFont.draw(batch, instruction, x + 14f * scale, y + 29f * scale);
-        batch.end();
-    }
+    
     // Method that disposes the resources used
     @Override
     public void dispose() {
@@ -120,4 +86,3 @@ public class GooseHUD implements Disposable {
         batch.dispose();
     }
 }
-

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="20" height="15" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="11">
+ <imagelayer id="1" name="Shop Artwork">
+  <image source="greggs_interior.png" width="640" height="480"/>
+ </imagelayer>
+ <objectgroup id="2" name="Collisions">
+  <object id="1" name="BackWallAndCounters" x="0" y="0" width="640" height="112.5"/>
+  <object id="2" name="LeftWallAndShelf" x="0" y="112.5" width="45" height="272.5"/>
+  <object id="3" name="RightWallAndShelf" x="595" y="112.5" width="45" height="272.5"/>
+  <object id="4" name="LeftWallLower" x="0" y="385" width="17.5" height="85"/>
+  <object id="5" name="RightWallLower" x="622.5" y="385" width="17.5" height="85"/>
+  <object id="6" name="DisplayCaseAndCounter" x="160" y="112.5" width="320" height="71.5"/>
+  <object id="7" name="BottomLeftShelf" x="17.6" y="437.5" width="245" height="42.5"/>
+  <object id="8" name="BottomRightShelf" x="380" y="437.5" width="242.5" height="42.5"/>
+  <object id="9" name="BottomWallLeft" x="0" y="462.5" width="280" height="17.5"/>
+  <object id="10" name="BottomWallRight" x="360" y="462.5" width="280" height="17.5"/>
+ </objectgroup>
+</map>
