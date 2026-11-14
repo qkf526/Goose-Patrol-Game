@@ -215,6 +215,10 @@ public class InventoryUI implements Disposable {
 
             Texture icon = itemIcons.get(itemName);
 
+            boolean isSausageRoll = slot.getItem().getType() == ItemType.SAUSAGE_ROLL;
+
+            boolean hiddenSausage =isSausageRoll && !inventory.isSausageRollDiscovered();
+
             // Make text grey if the slot is empty.
             font.setColor(
                 hasStock ? Color.WHITE : Color.GRAY
@@ -228,25 +232,48 @@ public class InventoryUI implements Disposable {
                 startY + slotSize - 5f * scale
             );
 
-            // Draw the item icon instead of its name.
-            if (icon != null) {
 
-                // Use 48% of the slot's width.
+            if (hiddenSausage) {
+
+                // Draw a gold question mark while the item
+                // has not been discovered.
+                font.getData().setScale(2.3f * scale);
+                font.setColor(Color.GOLD);
+
+                quantityLayout.setText(font, "?");
+
+                float questionX =
+                    x + (slotSize - quantityLayout.width) / 2f;
+
+                float questionY =
+                    startY + slotSize * 0.70f;
+
+                font.draw(
+                    batch,
+                    "?",
+                    questionX,
+                    questionY
+                );
+
+                // Restore the normal inventory font size.
+                font.getData().setScale(0.9f * scale);
+                font.setColor(Color.GRAY);
+
+            } else if (icon != null) {
+
+                // Display the real item icon.
                 float iconSize = slotSize * 0.48f;
 
-                // Centre the icon horizontally.
                 float iconX =
                     x + (slotSize - iconSize) / 2f;
 
                 float iconY =
                     startY + slotSize * 0.29f;
 
-                // Fade unavailable items.
+                // Fade items that have no stock remaining.
                 float opacity = hasStock ? 1f : 0.35f;
 
-                batch.setColor(
-                    1f, 1f, 1f, opacity
-                );
+                batch.setColor(1f, 1f, 1f, opacity);
 
                 batch.draw(
                     icon,
@@ -256,12 +283,11 @@ public class InventoryUI implements Disposable {
                     iconSize
                 );
 
-                // Reset the SpriteBatch colour.
                 batch.setColor(Color.WHITE);
 
             } else {
 
-                // Fallback for future items without icons.
+                // Fallback if an icon is missing.
                 font.draw(
                     batch,
                     itemName,
@@ -270,15 +296,14 @@ public class InventoryUI implements Disposable {
                 );
             }
 
+
             // Display remaining quantity.
-            String quantityText =
-                "x" + slot.getQuantity();
+            String quantityText = isSausageRoll
+                ? slot.getQuantity() + "x"
+                : "x" + slot.getQuantity();
 
             // Measure text to right-align it.
-            quantityLayout.setText(
-                font,
-                quantityText
-            );
+            quantityLayout.setText(font, quantityText);
 
             font.draw(
                 batch,

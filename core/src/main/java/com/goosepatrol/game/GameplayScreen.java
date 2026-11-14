@@ -70,8 +70,8 @@ public class GameplayScreen extends ScreenAdapter {
     private ScreenViewport healthHudViewport;
     private ShapeRenderer healthHudShapes;
 
-    // Temporary value until we implement hidden events.
-    private int eventsTriggered = 0;
+    // counts the number of events triggered
+    private int eventsTriggered;
 
     // The inventory controller for managing the player's inventory and item usage.
     private InventoryController inventoryController;
@@ -81,6 +81,12 @@ public class GameplayScreen extends ScreenAdapter {
     private GooseHUD gooseHUD;
     private GooseAnimations gooseAnimations;
     private Texture seedTexture;
+
+    // Handles Greggs interior and cashier interaction.
+    private EventArea eventArea;
+
+    // Handles the Long Boi statue interaction.
+    private StatueEvent statueEvent;
 
 
     // Starting countdown duration.
@@ -205,6 +211,9 @@ public class GameplayScreen extends ScreenAdapter {
 
         System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
 
+        eventArea = new EventArea();
+        statueEvent = new StatueEvent();
+
         initialized = true;
     }
 
@@ -247,23 +256,46 @@ public class GameplayScreen extends ScreenAdapter {
             }
         }
 
-        // Only update gameplay while playing.
+
         if (gooseWaves.isPlaying() && !wasCountingDown) {
 
             inventoryController.handleInput();
 
-            player.update(deltaTime, collisions);
+            // Use the correct collisions for the current map.
+            CollisionMap activeCollisions =
+                eventArea.isInEventArea()
+                    ? eventArea.getShopCollisions()
+                    : collisions;
 
-            // Which item was successfully used?
+            // Update the Player.
+            player.update(deltaTime, activeCollisions);
+
+            // Handle entering/leaving Greggs and cashier dialogue.
+            eventArea.update(
+                player,
+                inventoryController.getInventory()
+            );
+
+            // Long Boi is only accessible outdoors.
+            if (!eventArea.isInEventArea()) {
+                statueEvent.update(player, gooseWaves);
+            }
+
+            // Count completed events.
+            eventsTriggered =
+                (eventArea.hasTriggered() ? 1 : 0)
+                + (statueEvent.hasTriggered() ? 1 : 0);
+
+            // Existing item animation completion.
             ItemType used =
                 inventoryController.updateAfterPlayer();
 
-            if (used == ItemType.SEEDS ||
-                used == ItemType.AIR_HORN) {
+            // Seeds and Air Horn only affect outdoor geese.
+            if (!eventArea.isInEventArea() &&
+                (used == ItemType.SEEDS ||
+                used == ItemType.AIR_HORN)) {
 
-                // Calculate the player's ground position.
-                com.badlogic.gdx.math.Rectangle feet =
-                    player.getFeetBounds();
+                Rectangle feet = player.getFeetBounds();
 
                 float groundX =
                     feet.x + feet.width / 2f;
@@ -278,13 +310,16 @@ public class GameplayScreen extends ScreenAdapter {
                 }
             }
 
-            // Update the clock, geese and waves.
+            // Keep the timer running indoors,
+            // but update geese only while outdoors.
             gooseWaves.update(
                 deltaTime,
                 player,
-                collisions
+                collisions,
+                eventArea.isInEventArea()
             );
         }
+
 
         // Check whether the match has been lost.
         if (gooseWaves.getState()
@@ -330,9 +365,6 @@ public class GameplayScreen extends ScreenAdapter {
                 .getInventory()
                 .getTotalItemsUsed();
 
-            // Event system will be implemented later.
-            int eventsTriggered = 0;
-
             // Display the Victory screen.
             game.showVictory(
                 timeLeft,
@@ -345,59 +377,128 @@ public class GameplayScreen extends ScreenAdapter {
             return;
         }
 
-        player.keepInsideMap(mapWidth, mapHeight); // Ensure the player stays within the map boundaries.
+        int currentWidth = eventArea.isInEventArea()
+            ? EventArea.SHOP_WIDTH
+            : mapWidth;
+
+        int currentHeight = eventArea.isInEventArea()
+            ? EventArea.SHOP_HEIGHT
+            : mapHeight;
+
+        player.keepInsideMap(currentWidth, currentHeight);
 
         // MAKE CAMERA FOLLOW PLAYER
-        float halfWidth = viewport.getWorldWidth() / 2f; // Calculate half the width of the camera view.
-        float halfHeight = viewport.getWorldHeight() / 2f; // Calculate half the height of the camera view.
 
-        float cameraX = MathUtils.clamp(player.getCentreX(), halfWidth, mapWidth - halfWidth); // Clamp the camera's x-coordinate to follow the player while staying within map bounds.
-        float cameraY = MathUtils.clamp(player.getCentreY(), halfHeight, mapHeight - halfHeight); // Clamp the camera's y-coordinate to follow the player while staying within map bounds.
+        if (eventArea.isInEventArea()) {
 
-        camera.position.set(cameraX, cameraY, 0f); // Set the camera's position to follow the player.
-        camera.update(); // Update the camera to apply the new position.
+            // Show the entire Greggs interior.
+            camera.zoom = 0.8f;
 
-        // DRAW CAMPUS MAP
-        ScreenUtils.clear(0.12f, 0.16f, 0.20f, 1f); // Clear the screen with a dark blue color before drawing the map and player.
-        viewport.apply(); // Apply the viewport to ensure the camera's view is correctly set.
+            // Keep the camera centred inside the shop.
+            camera.position.set(
+                EventArea.SHOP_WIDTH / 2f,
+                EventArea.SHOP_HEIGHT / 2f,
+                0f
+            );
 
-        mapRenderer.setView(camera); // Set the map renderer to use the camera's view.
-        mapRenderer.render(); // Render the campus map.
+        } else {
+
+            // Restore normal campus camera zoom.
+            camera.zoom = 1f;
+
+            float halfWidth =
+                viewport.getWorldWidth() / 2f;
+
+            float halfHeight =
+                viewport.getWorldHeight() / 2f;
+
+            float cameraX = MathUtils.clamp(
+                player.getCentreX(),
+                halfWidth,
+                mapWidth - halfWidth
+            );
+
+            float cameraY = MathUtils.clamp(
+                player.getCentreY(),
+                halfHeight,
+                mapHeight - halfHeight
+            );
+
+            camera.position.set(cameraX, cameraY, 0f);
+        }
+
+        camera.update();
+
+
+        // DRAW CAMPUS MAP AND GREGGS MAP
+
+        // Clear the screen before drawing either map.
+        ScreenUtils.clear(0.12f, 0.16f, 0.20f, 1f);
+
+        // Apply the gameplay viewport.
+        viewport.apply();
+
+        // Make sure the camera has its latest position and zoom.
+        camera.update();
+
+        // Select which map to draw.
+        if (eventArea.isInEventArea()) {
+
+            // The player is inside Greggs.
+            eventArea.getShopRenderer().setView(camera);
+            eventArea.getShopRenderer().render();
+
+        } else {
+
+            // The player is outside on campus.
+            mapRenderer.setView(camera);
+            mapRenderer.render();
+        }
 
         // DRAW PLAYER
 
         batch.setProjectionMatrix(camera.combined); // Set the sprite batch to use the camera's combined projection and view matrix.
 
-
         batch.begin();
 
         Rectangle feet = player.getFeetBounds();
 
-        float playerGroundY =
-            feet.y + feet.height / 2f;
+        float playerGroundY = feet.y + feet.height / 2f;
 
-        // Draw ground-level seed effects.
-        gooseWaves.drawSeedPatches(
-            batch,
-            seedTexture
-        );
+        // Draw geese and Seeds only on campus.
+        if (!eventArea.isInEventArea()) {
 
-        // Draw geese behind the student.
-        gooseWaves.drawGeeseBehindPlayer(
-            batch,
-            gooseAnimations,
-            playerGroundY
-        );
+            gooseWaves.drawSeedPatches(
+                batch,
+                seedTexture
+            );
 
-        // Draw student.
+            gooseWaves.drawGeeseBehindPlayer(
+                batch,
+                gooseAnimations,
+                playerGroundY
+            );
+        }
+
+        // Draw the student in either environment.
         player.draw(batch);
 
-        // Draw geese in front.
-        gooseWaves.drawGeeseInFrontOfPlayer(
-            batch,
-            gooseAnimations,
-            playerGroundY
-        );
+        if (!eventArea.isInEventArea()) {
+
+            gooseWaves.drawGeeseInFrontOfPlayer(
+                batch,
+                gooseAnimations,
+                playerGroundY
+            );
+        }
+
+        // Show Greggs entrance, exit and cashier dialogue.
+        eventArea.drawDialog(batch);
+
+        // Show Long Boi's interaction pop-up outdoors.
+        if (!eventArea.isInEventArea()) {
+            statueEvent.draw(batch);
+        }
 
         batch.end();
 
@@ -742,5 +843,13 @@ public class GameplayScreen extends ScreenAdapter {
 
         countdownFont.dispose();
         countdownShade.dispose();
+
+        if (eventArea != null) {
+            eventArea.dispose();
+        }
+
+        if (statueEvent != null) {
+            statueEvent.dispose();
+        }
     }
 }

@@ -15,10 +15,10 @@ public class InventoryController implements Disposable {
         this.inventory = new Inventory();
 
         // Preload the player's inventory with some items.
-        inventory.addItem(new Seeds(), 10);
-        inventory.addItem(new AirHorn(), 5);
-        inventory.addItem(new Bandage(), 2);
-        inventory.addItem(new SausageRoll(), 2);
+        inventory.addItem(new Seeds(), 20);
+        inventory.addItem(new AirHorn(), 10);
+        inventory.addItem(new Bandage(), 7);
+        inventory.addItem(new SausageRoll(), 0);
 
         this.ui = new InventoryUI(inventory);
         select(0); // Match the highlighted first slot to the player's equipped animation.
