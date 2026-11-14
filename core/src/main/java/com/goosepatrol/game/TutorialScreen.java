@@ -9,6 +9,9 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+/**
+ * ehole screen is one image, drawn and waits for player ot leave
+ */
 public class TutorialScreen extends ScreenAdapter {
 
     private static final float WIDTH = 1448f;
@@ -19,6 +22,11 @@ public class TutorialScreen extends ScreenAdapter {
     private final FitViewport viewport;
     private final Texture background;
 
+    /**
+     * creates tutorial screen: its own batch and viewport, and artwork
+     *
+     * @param game game, used to return to previous screen and play menu sound
+     */
     public TutorialScreen(GoosePatrolGame game) {
 
         this.game = game;
@@ -37,6 +45,11 @@ public class TutorialScreen extends ScreenAdapter {
         );
     }
 
+    /**
+     * allows return to previous screen
+     *
+     * @param delta time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
 
@@ -74,11 +87,19 @@ public class TutorialScreen extends ScreenAdapter {
         batch.end();
     }
 
+    /**
+     * called when window chanegs size, rescales image to fit
+     * @param width new width
+     * @param height new height
+     */
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
 
+    /**
+     * frees batch and artwork
+     */
     @Override
     public void dispose() {
         batch.dispose();

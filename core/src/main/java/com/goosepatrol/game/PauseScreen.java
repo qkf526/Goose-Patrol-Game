@@ -9,6 +9,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+/**
+ * pause menu
+ * <p>
+ * whole menu is a piece of artwork. class draws image and moves gold arrow beside highlighted option
+ *
+ * </p>
+ */
 public class PauseScreen extends ScreenAdapter {
 
     private static final float WIDTH = 1448f;
@@ -37,6 +44,12 @@ public class PauseScreen extends ScreenAdapter {
 
     private int selectedOption = 0;
 
+
+    /**
+     * creates paue screen: has its own batch and viewport, artwork and arrow
+     *
+     * @param game game, used to resume restart, open tut, end match and play menu sounds
+     */
     public PauseScreen(GoosePatrolGame game) {
 
         this.game = game;
@@ -60,6 +73,10 @@ public class PauseScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * called when screen becomes current one. resets highlight to resume
+     * menu always opens "selecting" safest option
+     */
     @Override
     public void show() {
 
@@ -67,6 +84,13 @@ public class PauseScreen extends ScreenAdapter {
         selectedOption = 0;
     }
 
+    /**
+     * runs one fram : handles input, draws artwork and arrow beside option
+     * <p>
+     * nothing is drawn if input switched to another screen
+     *
+     * @param delta time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
 
@@ -108,6 +132,12 @@ public class PauseScreen extends ScreenAdapter {
         batch.end();
     }
 
+    /**
+     * reads keybpard for frame. esc resumes, up/down move highlight and enter activates it:
+     * resume returns to match, restart restarts match, tutoial opens tutorial screen and end game abandons match
+     *
+     * @return true if input leaving screen, meaning frame should not be drawn, false otherwise
+     */
     private boolean handleInput() {
 
         // ESC immediately resumes the game.
@@ -170,13 +200,20 @@ public class PauseScreen extends ScreenAdapter {
         return false;
     }
 
-
+    /**
+     * called when window changes sixe
+     * @param width new width
+     * @param height new height
+     */
     @Override
     public void resize(int width, int height) {
 
         viewport.update(width, height, true);
     }
 
+    /**
+     * frees batch, artwork and arrow
+     */
     @Override
     public void dispose() {
 

@@ -9,6 +9,21 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+
+/**
+ * main menu
+ * <p>
+ * class only draws image and moves gold arrow beside highligted opton
+ * options: play, tutorial, quit
+ * keys: up/down, enter
+ * <p>
+ * screen doesnt change screens itself.
+ * asks {@link GoosePatrolGame} to start new match, open tutorial, and plays menu sounds
+ * quit closes application directly
+ * <p>
+ * all positions are in co ordinates ({@code MENU_WIDTH} by {@code MENU_HEIGHT},
+ * origin bottom left)
+ */
 public class MainMenuScreen extends ScreenAdapter {
 
     // Dimensions of main menu artwork.
@@ -40,7 +55,13 @@ public class MainMenuScreen extends ScreenAdapter {
     // 0 = Play, 1 = Tutorial, 2 = Quit.
     private int selectedOption = 0;
 
-    //Constructor
+    /**
+     * creates main menu: has its own batch and viewport, the artwork and the
+     * selection arrow.
+     *
+     * @param game the game, used to start a match, open the tutorial and play
+     *             menu sounds
+     */
     public MainMenuScreen(GoosePatrolGame game) {
 
         this.game = game;
@@ -69,6 +90,17 @@ public class MainMenuScreen extends ScreenAdapter {
         selectionArrow = MenuArrow.create();
     }
 
+    /**
+     * reads the keyboard frame. up/down move highlight
+     * (wrapping at ends)
+     * <p>
+     * enter activates the highlighted option:
+     * play starts new match, tutorial opens tutorial and quit closes
+     * application.
+     *
+     * @return true if an option was activated, meaning screen is
+     *         changing and this frame shouldnt be drawn; false otherwise
+     */
     private boolean handleInput() {
 
         // Move selection one button upwards.
@@ -116,6 +148,10 @@ public class MainMenuScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * called when screen becomes current. resets highlight to play,
+     * so menu opens on same option
+     */
     @Override
     public void show() {
 
@@ -123,6 +159,12 @@ public class MainMenuScreen extends ScreenAdapter {
         selectedOption = 0;
     }
 
+    /**
+     * runs one frame: handes input, draws artwork and arrow beside highlighter option
+     * nothing is drawn if input is switched to another screen
+     *
+     * @param delta time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
 
@@ -168,12 +210,21 @@ public class MainMenuScreen extends ScreenAdapter {
         batch.end();
     }
 
+    /**
+     * called when window changes size. rescales artwork
+     *
+     * @param width new window width
+     * @param height new window height
+     */
     @Override
     public void resize(int width, int height) {
 
         viewport.update(width, height, true);
     }
 
+    /**
+     * frees batch, artwork and arrow (this screen owns)
+     */
     @Override
     public void dispose() {
 

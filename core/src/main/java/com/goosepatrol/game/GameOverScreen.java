@@ -11,7 +11,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class GameOverScreen extends ScreenAdapter {
 
-    // The two possible reasons for losing.
+    /**
+     * reason match was lost, decides what artwork is shown
+     */
     public enum Reason {
         OUT_OF_ENERGY,
         TIME_UP
@@ -26,7 +28,9 @@ public class GameOverScreen extends ScreenAdapter {
     private static final float ARROW_X = 435f;
     private static final float ARROW_SIZE = 50f;
 
-    // Button centres in libGDX coordinates.
+    /**
+     * centre of each button in artwork (vertical)
+      */
     private static final float[] BUTTON_Y = {
         486f, // Try Again
         384f  // Main Menu
@@ -43,6 +47,11 @@ public class GameOverScreen extends ScreenAdapter {
     private int selectedOption = 0;
 
 
+    /**
+     * creates game over screen and loads artwork that matches why match was lost
+     * @param game
+     * @param reason
+     */
     public GameOverScreen(
         GoosePatrolGame game,
         Reason reason
@@ -80,6 +89,12 @@ public class GameOverScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * reads keybpard for frame. esc resumes, up/down move highlight and enter activates it:
+     * resume returns to match, restart restarts match, tutoial opens tutorial screen and end game abandons match
+     *
+     * @return true if input leaving screen, meaning frame should not be drawn, false otherwise
+     */
     private boolean handleInput() {
 
         // Move selection upwards.
@@ -104,7 +119,7 @@ public class GameOverScreen extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
             || Gdx.input.isKeyJustPressed(
                 Input.Keys.NUMPAD_ENTER)) {
-                    
+
             game.getSounds().playMenuSelect();
             switch (selectedOption) {
 
@@ -124,6 +139,9 @@ public class GameOverScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * called when screen becomes current
+     */
     @Override
     public void show() {
 
@@ -131,6 +149,11 @@ public class GameOverScreen extends ScreenAdapter {
         selectedOption = 0;
     }
 
+    /**
+     * runs 1 frame, handles input, draws artwork and arrow.
+     * nothing drawn if input swtched to another screen
+     * @param delta The time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
 

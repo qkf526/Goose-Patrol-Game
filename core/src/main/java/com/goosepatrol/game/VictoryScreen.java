@@ -12,6 +12,9 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+/**
+ * appears when play clears all geese. layout is artwork
+ */
 public class VictoryScreen extends ScreenAdapter {
 
     // Dimensions of the Victory artwork.
@@ -54,6 +57,14 @@ public class VictoryScreen extends ScreenAdapter {
     // 0 = Play Again, 1 = Main Menu.
     private int selectedOption = 0;
 
+    /**
+     * creates victory screen and stores final stats to display
+     * @param game game, used to start new match, return to main menu and play menu sound
+     * @param secondsRemaining seconds left on clock
+     * @param energyPercentage energy left as a percentage
+     * @param itemsUsed total num of items used during match
+     * @param eventsTriggered num of total events triggered
+     */
     public VictoryScreen(
         GoosePatrolGame game,
         int secondsRemaining,
@@ -101,6 +112,11 @@ public class VictoryScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * draws statistics
+     * @param text value to draw, already formatted
+     * @param y y pos of top of text
+     */
     private void drawResult(
         String text,
         float y
@@ -134,6 +150,9 @@ public class VictoryScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * draw results beside label in artwork.
+     */
     private void drawStatistics() {
 
         // Convert seconds to MM:SS format.
@@ -160,6 +179,11 @@ public class VictoryScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * reads keyboard, up/down move highlight and enter activates ut:
+     * play again starts new match and main menu return s to main menu
+     * @return true if an oprion was activated
+     */
     private boolean handleInput() {
 
         // Move the arrow upwards.
@@ -203,6 +227,9 @@ public class VictoryScreen extends ScreenAdapter {
     }
 
 
+    /**
+     * called when screen ebcomes current
+     */
     @Override
     public void show() {
 
@@ -210,6 +237,11 @@ public class VictoryScreen extends ScreenAdapter {
         selectedOption = 0;
     }
 
+    /**
+     * runs 1 frame: handles inpout, draws artwork, results and arrow beside option
+     *
+     * @param delta The time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
 
