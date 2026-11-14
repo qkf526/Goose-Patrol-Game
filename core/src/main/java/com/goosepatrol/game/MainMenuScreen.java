@@ -77,6 +77,7 @@ public class MainMenuScreen extends ScreenAdapter {
             selectedOption =
                 (selectedOption - 1 + OPTION_COUNT)
                 % OPTION_COUNT;
+            game.getSounds().playMenuMove();
         }
 
         // Move selection one button downwards.
@@ -85,13 +86,14 @@ public class MainMenuScreen extends ScreenAdapter {
             selectedOption =
                 (selectedOption + 1)
                 % OPTION_COUNT;
+            game.getSounds().playMenuMove();
         }
 
         // Activate the currently selected button.
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
             || Gdx.input.isKeyJustPressed(
                 Input.Keys.NUMPAD_ENTER)) {
-
+            game.getSounds().playMenuSelect();
             switch (selectedOption) {
 
                 case 0:

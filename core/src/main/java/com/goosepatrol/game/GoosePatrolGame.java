@@ -13,14 +13,15 @@ public class GoosePatrolGame extends Game {
     private VictoryScreen victoryScreen;
     private TutorialScreen tutorialScreen;
     private Screen tutorialReturnScreen;
+    private SoundManager sounds;
 
     @Override
     public void create() {
 
-        // Open the Main Menu when the game launches.
-        mainMenuScreen = new MainMenuScreen(this);
-
+        sounds = new SoundManager(); //Initialising the gameplay sounds
+        mainMenuScreen = new MainMenuScreen(this); // Open the Main Menu when the game launches.
         setScreen(mainMenuScreen);
+        sounds.startBackgroundMusic(); //Starts background music immediately the game is opened
     }
 
     // Called when Play is selected.
@@ -119,6 +120,11 @@ public class GoosePatrolGame extends Game {
         if (getScreen() != gameplayScreen) {
             return;
         }
+        if (reason == GameOverScreen.Reason.TIME_UP) {
+            sounds.playTimeUp();
+        } else {
+            sounds.playGameOver();
+        }
 
         // Create the correct Game Over screen.
         gameOverScreen = new GameOverScreen(
@@ -142,6 +148,7 @@ public class GoosePatrolGame extends Game {
         if (getScreen() != gameplayScreen) {
             return;
         }
+        sounds.playVictory();
 
         // Create a screen with the final results.
         victoryScreen = new VictoryScreen(
@@ -187,8 +194,12 @@ public class GoosePatrolGame extends Game {
         }
     }
 
+    // Allows other screens to use the shared audio system.
+    public SoundManager getSounds() {
+        return sounds;
+    }
 
-
+    //Disposes resources after game is closed
     @Override
     public void dispose() {
 
@@ -214,6 +225,9 @@ public class GoosePatrolGame extends Game {
 
         if (tutorialScreen != null) {
             tutorialScreen.dispose();
+        }
+        if (sounds != null) {
+            sounds.dispose();
         }
     }
 

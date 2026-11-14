@@ -381,4 +381,34 @@ public class GooseWaveManager {
             if (goose.getY() < playerGroundY) goose.draw(batch, animations);
         }
     }
+
+    //Method to count the number of nearby geese for sound purposes
+    public int countNearbyGeese(Player player, float range) {
+
+        Rectangle feet = player.getFeetBounds();
+
+        float px = feet.x + feet.width / 2f;
+        float py = feet.y + feet.height / 2f;
+
+        int count = 0;
+
+        for (Goose goose : geese) {
+
+            // Only count geese actively chasing or pecking.
+            if (goose.getState() != Goose.State.CHASING &&
+                goose.getState() != Goose.State.PECKING) {
+                continue;
+            }
+
+            float dx = goose.getX() - px;
+            float dy = goose.getY() - py;
+
+            if (dx * dx + dy * dy <= range * range) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
 }

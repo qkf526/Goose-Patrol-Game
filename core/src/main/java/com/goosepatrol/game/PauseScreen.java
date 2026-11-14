@@ -113,7 +113,7 @@ public class PauseScreen extends ScreenAdapter {
         // ESC immediately resumes the game.
         if (Gdx.input.isKeyJustPressed(
             Input.Keys.ESCAPE)) {
-
+            game.getSounds().playMenuSelect();
             game.resumeGame();
             return true;
         }
@@ -125,6 +125,7 @@ public class PauseScreen extends ScreenAdapter {
             selectedOption =
                 (selectedOption - 1 + OPTION_COUNT)
                 % OPTION_COUNT;
+            game.getSounds().playMenuMove();
         }
 
         // Move the selection downwards.
@@ -134,6 +135,7 @@ public class PauseScreen extends ScreenAdapter {
             selectedOption =
                 (selectedOption + 1)
                 % OPTION_COUNT;
+            game.getSounds().playMenuMove();
         }
 
         // Select the highlighted option.
@@ -141,6 +143,7 @@ public class PauseScreen extends ScreenAdapter {
             || Gdx.input.isKeyJustPressed(
                 Input.Keys.NUMPAD_ENTER)) {
 
+            game.getSounds().playMenuSelect();
             switch (selectedOption) {
 
                 case 0:

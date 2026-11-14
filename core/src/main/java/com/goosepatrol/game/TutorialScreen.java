@@ -7,8 +7,6 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class TutorialScreen extends ScreenAdapter {
@@ -20,12 +18,6 @@ public class TutorialScreen extends ScreenAdapter {
     private final SpriteBatch batch;
     private final FitViewport viewport;
     private final Texture background;
-
-    // Approximate Back button area in the artwork.
-    private final Rectangle backButton =
-        new Rectangle(155f, 132f, 335f, 85f);
-
-    private final Vector3 pointer = new Vector3();
 
     public TutorialScreen(GoosePatrolGame game) {
 
@@ -55,26 +47,8 @@ public class TutorialScreen extends ScreenAdapter {
                 Input.Keys.NUMPAD_ENTER)) {
 
             game.backFromTutorial();
+            game.getSounds().playMenuSelect();
             return;
-        }
-
-        // Allow clicking the Back button.
-        if (Gdx.input.justTouched()) {
-
-            pointer.set(
-                Gdx.input.getX(),
-                Gdx.input.getY(),
-                0f
-            );
-
-            // Convert screen coordinates to menu coordinates.
-            viewport.unproject(pointer);
-
-            if (backButton.contains(pointer.x, pointer.y)) {
-
-                game.backFromTutorial();
-                return;
-            }
         }
 
         // Clear the screen.

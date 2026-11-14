@@ -82,6 +82,10 @@ public class GameplayScreen extends ScreenAdapter {
     private GooseAnimations gooseAnimations;
     private Texture seedTexture;
 
+    // Controls how frequently nearby geese make sounds.
+    private float gooseSoundCooldown = 0f;
+    private static final float GOOSE_SOUND_RANGE = 150f;
+
     // Handles Greggs interior and cashier interaction.
     private EventArea eventArea;
 
@@ -90,7 +94,7 @@ public class GameplayScreen extends ScreenAdapter {
 
 
     // Starting countdown duration.
-    private static final float START_COUNTDOWN = 5f;
+    private static final float START_COUNTDOWN = 3f;
 
     // Is the countdown currently active?
     private boolean countdownActive = false;
@@ -237,10 +241,20 @@ public class GameplayScreen extends ScreenAdapter {
         // Update our five-second countdown.
         if (countdownActive) {
 
+            int numberBefore = (int) Math.ceil(countdownRemaining);
+
             countdownRemaining = Math.max(
                 0f,
                 countdownRemaining - Math.max(0f, delta)
             );
+
+
+            int numberAfter = (int) Math.ceil(countdownRemaining);
+
+            // Play a tick when a new positive number appears.
+            if (numberAfter > 0 && numberAfter < numberBefore) {
+                game.getSounds().playCountdownTick();
+            }
 
             // Countdown finished.
             if (countdownRemaining <= 0f) {
@@ -259,7 +273,18 @@ public class GameplayScreen extends ScreenAdapter {
 
         if (gooseWaves.isPlaying() && !wasCountingDown) {
 
+            // Remember the equipped item before reading input.
+            ItemType itemBefore = player.getEquippedItem();
+
+            // Process item selection and usage.
             inventoryController.handleInput();
+
+            // Check whether the selected item changed.
+            ItemType itemAfter = player.getEquippedItem();
+
+            if (itemAfter != null && itemAfter != itemBefore) {
+                game.getSounds().playEquip();
+            }
 
             // Use the correct collisions for the current map.
             CollisionMap activeCollisions =
@@ -268,7 +293,45 @@ public class GameplayScreen extends ScreenAdapter {
                     : collisions;
 
             // Update the Player.
+            // Record the player's position before movement.
+            Rectangle feetBefore = player.getFeetBounds();
+
+            float oldX = feetBefore.x;
+            float oldY = feetBefore.y;
+
+            // Update the player's movement as normal.
             player.update(deltaTime, activeCollisions);
+
+            // Get the player's position after movement.
+            Rectangle feetAfter = player.getFeetBounds();
+
+            float dx = feetAfter.x - oldX;
+            float dy = feetAfter.y - oldY;
+
+            // Check whether the player actually moved.
+            boolean hasMoved = dx * dx + dy * dy > 0.01f;
+
+            // Check whether a movement key is being held.
+            boolean movementKeyPressed =
+                Gdx.input.isKeyPressed(Input.Keys.W) ||
+                Gdx.input.isKeyPressed(Input.Keys.A) ||
+                Gdx.input.isKeyPressed(Input.Keys.S) ||
+                Gdx.input.isKeyPressed(Input.Keys.D) ||
+                Gdx.input.isKeyPressed(Input.Keys.UP) ||
+                Gdx.input.isKeyPressed(Input.Keys.DOWN) ||
+                Gdx.input.isKeyPressed(Input.Keys.LEFT) ||
+                Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+
+            // Play footsteps only when the player is walking.
+            if (hasMoved && movementKeyPressed) {
+                game.getSounds().playFootsteps();
+            } else {
+                game.getSounds().stopFootsteps();
+            }
+
+            boolean wasInsideGreggs = eventArea.isInEventArea();
+            boolean greggsCompletedBefore = eventArea.hasTriggered();
+            boolean statueCompletedBefore = statueEvent.hasTriggered();
 
             // Handle entering/leaving Greggs and cashier dialogue.
             eventArea.update(
@@ -281,14 +344,56 @@ public class GameplayScreen extends ScreenAdapter {
                 statueEvent.update(player, gooseWaves);
             }
 
+
+            // Play a door sound on entering or leaving Greggs.
+            if (wasInsideGreggs != eventArea.isInEventArea()) {
+                game.getSounds().playDoor();
+            }
+
+            // Play the event sound when the cashier reward is received.
+            if (!greggsCompletedBefore && eventArea.hasTriggered()) {
+                game.getSounds().playEventComplete();
+            }
+
+            // Play the statue honk when Long Boi is activated.
+            if (!statueCompletedBefore && statueEvent.hasTriggered()) {
+                game.getSounds().playStatueHonk();
+                game.getSounds().playEventComplete();
+            }
+
             // Count completed events.
             eventsTriggered =
                 (eventArea.hasTriggered() ? 1 : 0)
                 + (statueEvent.hasTriggered() ? 1 : 0);
 
             // Existing item animation completion.
-            ItemType used =
-                inventoryController.updateAfterPlayer();
+            ItemType used =inventoryController.updateAfterPlayer();
+
+            // Play a sound when an item was successfully used.
+            if (used != null) {
+
+                switch (used) {
+
+                    case SEEDS:
+                        game.getSounds().playSeeds();
+                        break;
+
+                    case AIR_HORN:
+                        game.getSounds().playAirHorn();
+                        break;
+
+                    case BANDAGE:
+                        game.getSounds().playBandage();
+                        break;
+
+                    case SAUSAGE_ROLL:
+                        game.getSounds().playSausageRoll();
+                        break;
+
+                    default:
+                        break;
+                }
+            }
 
             // Seeds and Air Horn only affect outdoor geese.
             if (!eventArea.isInEventArea() &&
@@ -310,16 +415,62 @@ public class GameplayScreen extends ScreenAdapter {
                 }
             }
 
+            int energyBefore = player.getHealth();
+            int waveBefore = gooseWaves.getCurrentWave();
             // Keep the timer running indoors,
             // but update geese only while outdoors.
-            gooseWaves.update(
-                deltaTime,
-                player,
-                collisions,
-                eventArea.isInEventArea()
-            );
+            gooseWaves.update(deltaTime, player,collisions,eventArea.isInEventArea());
+
+            if (gooseWaves.getCurrentWave() > waveBefore) {
+                game.getSounds().playWaveStart();
+            }
+
+            if (player.getHealth() < energyBefore) {
+                game.getSounds().playHurt();
+            }
         }
 
+        // Update the interval between goose sounds.
+        gooseSoundCooldown = Math.max(
+            0f,
+            gooseSoundCooldown - deltaTime
+        );
+
+        // Geese cannot be heard inside Greggs.
+        if (!eventArea.isInEventArea() &&
+            gooseWaves.isPlaying() &&
+            gooseSoundCooldown <= 0f) {
+
+            int nearbyGeese = gooseWaves.countNearbyGeese(
+                player,
+                GOOSE_SOUND_RANGE
+            );
+
+            if (nearbyGeese > 0) {
+
+                game.getSounds().playGoose(nearbyGeese);
+
+                // Larger groups honk more frequently.
+                if (nearbyGeese == 1) {
+
+                    gooseSoundCooldown = MathUtils.random(
+                        4f, 5f
+                    );
+
+                } else if (nearbyGeese <= 3) {
+
+                    gooseSoundCooldown = MathUtils.random(
+                        2f, 3f
+                    );
+
+                } else {
+
+                    gooseSoundCooldown = MathUtils.random(
+                        1.5f, 2.5f
+                    );
+                }
+            }
+        }
 
         // Check whether the match has been lost.
         if (gooseWaves.getState()
@@ -699,6 +850,7 @@ public class GameplayScreen extends ScreenAdapter {
 
         // Prevent gameplay until countdown ends.
         countdownActive = true;
+        game.getSounds().playCountdownTick(); //countdown sound
     }
 
     private void drawCountdownText(
@@ -799,7 +951,12 @@ public class GameplayScreen extends ScreenAdapter {
             Math.min(scale, 2f)
         );
     }
-
+    //Stop footstep sounds when on another screen
+    @Override
+    public void hide() {
+        // Stop walking sounds when opening another screen.
+        game.getSounds().stopFootsteps();
+    }
 
     // Handle window resizing events.
     @Override

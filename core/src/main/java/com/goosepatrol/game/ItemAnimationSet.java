@@ -95,7 +95,7 @@ public class ItemAnimationSet {
     ) {
 
         Array<TextureRegion> sequence =
-            new Array<>(TextureRegion.class);
+            new Array<>(TextureRegion[]::new);
 
         for (TextureRegion[] row : frames) {
             sequence.add(row[column]);
