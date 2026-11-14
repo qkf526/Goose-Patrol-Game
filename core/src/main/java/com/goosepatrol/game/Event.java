@@ -193,6 +193,10 @@ public class Event {
             dialogFont.setColor(Color.WHITE);
         }
     }
+    
+    public boolean isCompleted() {
+        return itemGiven;
+    }
 
     //restarts the event, so the item can be given again in a new match.
     public void reset() {

@@ -7,17 +7,45 @@ public class Inventory {
     private final ArrayList<InventorySlot> slots = new ArrayList<>();
     private int selectedIndex = 0;
     private int totalItemsUsed = 0;
+    private boolean sausageRollDiscovered = false;
+
 
     public void addItem(Item item, int quantity) {
-        if (item == null || quantity <= 0) return;
+
+        // Negative quantities are invalid,
+        // but zero is allowed for an empty slot.
+        if (item == null || quantity < 0) {
+            return;
+        }
+
+        // Reveal the secret item when the player
+        // actually receives a Sausage Roll.
+        if (item.getType() == ItemType.SAUSAGE_ROLL
+            && quantity > 0) {
+
+            sausageRollDiscovered = true;
+        }
+
+        // If this item already has a slot,
+        // increase its quantity instead.
         for (InventorySlot slot : slots) {
+
             if (sameItem(slot.getItem(), item)) {
+
                 slot.addQuantity(quantity);
                 return;
             }
         }
+
+        // Otherwise create a new slot.
+        // The initial Sausage Roll slot has quantity 0.
         slots.add(new InventorySlot(item, quantity));
     }
+
+    public boolean isSausageRollDiscovered() {
+        return sausageRollDiscovered;
+    }
+
 
     private boolean sameItem(Item a, Item b) {
         return a.getType() != null && b.getType() != null

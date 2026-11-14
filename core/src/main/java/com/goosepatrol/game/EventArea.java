@@ -8,6 +8,7 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.Color;
 
 
 public class EventArea {
@@ -74,7 +75,7 @@ public class EventArea {
 
         // The event is placed on the floor tiles in front of the cashier, so the dialog starts when the student walks up to the counter.
         this.itemEvent = new Event(442, 300, 45, firstEventDialog, new SausageRoll());
-        this.itemEvent.setSpeakerPosition(442, 377); // Show the chat box above the cashier's head.
+        this.itemEvent.setSpeakerPosition(225, 255); // Show the chat box above the cashier's head.
  
         // Load the shop map, the same way the campus map is loaded.
         this.shopMap = new TmxMapLoader().load("maps/greggs.tmx");
@@ -83,7 +84,16 @@ public class EventArea {
  
         this.entranceBounds = new Rectangle(ENTRANCE_X, ENTRANCE_Y, ENTRANCE_WIDTH, ENTRANCE_HEIGHT);
         this.doorBounds = new Rectangle(DOOR_X, DOOR_Y, DOOR_WIDTH, DOOR_HEIGHT);
-        this.promptFont = new BitmapFont(); // Initialise the default font for the door prompts.
+
+        // Create the font for Greggs entrance and exit prompts.
+        this.promptFont = new BitmapFont();
+
+        // Use black text for better visibility.
+        this.promptFont.setColor(Color.BLACK);
+
+        // Enlarge the text by 40%.
+        this.promptFont.getData().setScale(1.4f);
+
     }
     
 
@@ -139,7 +149,7 @@ public class EventArea {
     public void drawDialog(SpriteBatch batch) {
  
         if (atEntrance) {
-            promptFont.draw(batch, "Press E to enter Greggs", ENTRANCE_X - 50f, ENTRANCE_Y + 60f); // Show the prompt just above the Greggs door.
+            promptFont.draw(batch, "Press E to enter Greggs", ENTRANCE_X - 50f, ENTRANCE_Y - 5); // Show the prompt just above the Greggs door.
         }
  
         if (atExit) {
@@ -149,6 +159,10 @@ public class EventArea {
         if (inEventArea) {
             itemEvent.drawDialog(batch); // Draw the cashier dialog if the student is close.
         }
+    }
+
+    public boolean hasTriggered() {
+        return itemEvent.isCompleted();
     }
 
     // restart event area back for a new match.

@@ -11,10 +11,30 @@ public class GooseWaveManager {
     public enum GameState { PAUSED, PLAYING, WON, LOST }
 
     public static final float GAME_DURATION = 300f; // Five minutes.
-    public static final int TOTAL_WAVES = 4;
 
-    private static final int[] WAVE_SIZES = {3, 5, 7, 10};
-    public static final int TOTAL_GEESE = 25;
+
+    // Number of geese in each wave.
+    private static final int[] WAVE_SIZES = {
+        5, 7, 10, 13, 15
+    };
+
+    // Automatically determine the number of waves.
+    public static final int TOTAL_WAVES = WAVE_SIZES.length;
+
+    // Automatically calculate the total geese.
+    public static final int TOTAL_GEESE = calculateTotalGeese();
+
+    private static int calculateTotalGeese() {
+
+        int total = 0;
+
+        for (int amount : WAVE_SIZES) {
+            total += amount;
+        }
+
+        return total;
+    }
+
     public static final float BETWEEN_WAVES = 10f;
 
     private static final int SEEDS_MAX_TARGETS = 2;
@@ -22,22 +42,56 @@ public class GooseWaveManager {
     private static final int HORN_MAX_TARGETS = 3;
     private static final float HORN_RANGE = 185f;
 
-    // The Long Boi statue scares away every goose within this distance of the statue.
-    private static final float STATUE_RANGE = 450f;
+    private static final float STATUE_RANGE = 450f; //For Long Boi statue event
 
+    // Candidate spawn positions around the lake.
+    //
+    // These are WORLD coordinates, measured from
+    // the bottom-left of the campus map.
+    //
+    // The positions are on the northern lake shore
+    // and nearby grass/path areas, not in the water.
 
-    // Candidate positions chosen on open ground/pathways of the campus map.
-    // Coordinates are libGDX world coordinates (bottom-left origin).
     private static final float[][] SPAWN_POINTS = {
-        {420f, 510f}, {1080f, 510f}, {705f, 725f}, {555f, 360f},
-        {360f, 600f}, {1030f, 630f}, {775f, 445f}, {900f, 520f},
-        {520f, 675f}, {1160f, 550f}, {600f, 410f}, {850f, 665f},
-        {470f, 510f}, {1120f, 600f}, {720f, 700f}, {570f, 385f},
-        {450f, 650f}, {990f, 590f}, {810f, 455f}, {940f, 540f},
-        {540f, 705f}, {1180f, 500f}, {630f, 440f}, {860f, 690f},
-        {420f, 440f}, {1020f, 470f}, {760f, 640f}, {390f, 710f},
-        {1130f, 700f}, {950f, 400f}, {620f, 600f}, {460f, 390f}
+
+        // Northern shoreline.
+        {350f, 335f},
+        {430f, 335f},
+        {530f, 335f},
+        {630f, 335f},
+        {730f, 335f},
+        {830f, 335f},
+        {930f, 335f},
+        {1030f, 335f},
+        {1130f, 335f},
+
+        // Slightly further inland.
+        {380f, 355f},
+        {480f, 355f},
+        {580f, 355f},
+        {680f, 355f},
+        {780f, 355f},
+        {880f, 355f},
+        {980f, 355f},
+        {1080f, 355f},
+
+        // Grass farther from the shoreline.
+        {350f, 415f},
+        {530f, 415f},
+        {710f, 415f},
+        {880f, 415f},
+        {1080f, 415f},
+
+        // Path beside the lake.
+        {425f, 300f},
+        {520f, 300f},
+        {620f, 300f},
+        {720f, 300f},
+        {820f, 300f},
+        {920f, 300f},
+        {1020f, 300f}
     };
+
 
     private static final class SeedPatch {
         float x, y, secondsRemaining;
@@ -63,14 +117,14 @@ public class GooseWaveManager {
         this.mapHeight = mapHeight;
     }
 
-    public GameState getState() { return state; }
-    public boolean isPlaying() { return state == GameState.PLAYING; }
-    public boolean isFinished() { return state == GameState.WON || state == GameState.LOST; }
-    public int getCurrentWave() { return nextWave; }
-    public int getActiveGeese() { return geese.size; }
-    public int getDispersedCount() { return dispersed; }
-    public float getElapsedSeconds() { return elapsed; }
-    public int getSecondsRemaining() { return Math.max(0, (int) Math.ceil(GAME_DURATION - elapsed)); }
+    public GameState getState() { return state; } //get current playing state
+    public boolean isPlaying() { return state == GameState.PLAYING; } //Check if game is being actively played
+    public boolean isFinished() { return state == GameState.WON || state == GameState.LOST; } //Check if the game has finished
+    public int getCurrentWave() { return nextWave; } //Get the current wave number
+    public int getActiveGeese() { return geese.size; } //Get the current number of active geese
+    public int getDispersedCount() { return dispersed; } //Get the current number of dispersed geese
+    public float getElapsedSeconds() { return elapsed; } //Get the time in seconds that has passed
+    public int getSecondsRemaining() { return Math.max(0, (int) Math.ceil(GAME_DURATION - elapsed)); } //Get the number of seconds remaning
     public boolean isBetweenWaves() {
     return nextWaveCountdown >= 0f;
     }
@@ -98,14 +152,16 @@ public class GooseWaveManager {
         nextWaveCountdown = -1f;
     }
 
-    // Method to update the game state and implement wave cooldown countdown
-    public void update( float delta, Player player, CollisionMap collisions ) {
-        update(delta, player, collisions, false); // The student is outside.
+    public void update(
+        float delta,
+        Player player,
+        CollisionMap collisions
+    ) {
+        update(delta, player, collisions, false);
     }
 
-    // Update the game state. While the student is indoors (for example in Greggs),
-    // only the clock and the break between waves keep running: geese wait outside and no new wave spawns.
-    public void update( float delta, Player player, CollisionMap collisions, boolean playerIndoors ) {
+    // Method to update the game state and implement wave cooldown countdown
+    public void update( float delta, Player player, CollisionMap collisions, boolean playerIndoors) {
 
         if (state != GameState.PLAYING) {
             return;
@@ -119,17 +175,6 @@ public class GooseWaveManager {
         // Check whether the game is over.
         if (elapsed >= GAME_DURATION || player.isDefeated()) {
             state = GameState.LOST;
-            return;
-        }
-
-        // While the student is indoors, the geese cannot follow them and no wave spawns.
-        if (playerIndoors) {
-
-            // Keep the break between waves counting down; the next wave spawns once the student is back outside.
-            if (isBetweenWaves()) {
-                nextWaveCountdown = Math.max(0f, nextWaveCountdown - dt);
-            }
-
             return;
         }
 
@@ -150,6 +195,23 @@ public class GooseWaveManager {
                 nextWave++;
                 nextWaveCountdown = -1f;
             }
+        }
+
+        // When the player is inside Greggs,
+        // the gameplay timer continues,
+        // but geese remain outside.
+        if (playerIndoors) {
+
+            // Let the between-wave cooldown continue.
+            if (isBetweenWaves()) {
+
+                nextWaveCountdown = Math.max(
+                    0f,
+                    nextWaveCountdown - dt
+                );
+            }
+
+            return;
         }
 
         // Update each goose.
@@ -249,11 +311,27 @@ public class GooseWaveManager {
         return affectClosest(playerGroundX, playerGroundY, HORN_RANGE, HORN_MAX_TARGETS, true, playerGroundX, playerGroundY);
     }
 
-    /** Called once when the student uses the Long Boi statue: frightens every goose within the statue's range. */
-    public int useStatueHonk(float statueX, float statueY) {
-        if (state != GameState.PLAYING) return 0;
-        return affectClosest(statueX, statueY, STATUE_RANGE, Integer.MAX_VALUE, true, statueX, statueY);
+
+    public int useStatueHonk(
+        float statueX,
+        float statueY
+    ) {
+
+        if (!isPlaying()) {
+            return 0;
+        }
+
+        return affectClosest(
+            statueX,
+            statueY,
+            STATUE_RANGE,
+            Integer.MAX_VALUE,
+            true,
+            statueX,
+            statueY
+        );
     }
+
 
     //Method to make sure the closest geese to an item are the one affected, so one use of the item doesn't disperse all geese of the wave
     private int affectClosest(float playerX, float playerY, float radius,int limit, boolean horn, float seedX, float seedY) {

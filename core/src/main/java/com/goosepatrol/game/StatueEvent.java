@@ -89,6 +89,10 @@ public class StatueEvent {
         }
     }
 
+    public boolean hasTriggered() {
+        return used;
+    }
+
     // Put the statue back to how it starts, so it can be used again in a new match.
     public void reset() {
         playerInRange = false;

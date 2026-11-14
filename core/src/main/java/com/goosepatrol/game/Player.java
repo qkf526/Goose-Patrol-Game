@@ -239,6 +239,7 @@ public class Player {
         this.y = y;
     }
 
+
     public void draw(SpriteBatch batch) {
 
         TextureRegion currentFrame;
