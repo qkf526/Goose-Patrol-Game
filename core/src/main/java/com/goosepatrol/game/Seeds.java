@@ -16,4 +16,3 @@ public class Seeds extends Item {
         return true;
     }
 }
-
