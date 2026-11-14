@@ -1,220 +1,94 @@
-
 package com.goosepatrol.game;
 
 import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.ObjectSet;
 
+/**
+ * Screen manager. Owns everything the screens share: one SpriteBatch, one
+ * ShapeRenderer, the fonts, and a texture cache. Screens borrow these and
+ * must never dispose them.
+ *
+ * render() and resize() are deliberately NOT overridden: Game forwards them
+ * to whichever screen is current.
+ */
 public class GoosePatrolGame extends Game {
 
-    private MainMenuScreen mainMenuScreen;
-    private GameplayScreen gameplayScreen;
-    private PauseScreen pauseScreen;
-    private GameOverScreen gameOverScreen;
-    private VictoryScreen victoryScreen;
-    private TutorialScreen tutorialScreen;
-    private Screen tutorialReturnScreen;
+    public SpriteBatch batch;
+    public ShapeRenderer shapes;
+
+    public BitmapFont font;        // legacy font (ControlsScreen still uses it)
+    public BitmapFont uiFont;      // buttons and body text
+    public BitmapFont titleFont;   // big headings
+    public BitmapFont smallFont;   // hints, quantities, item names
+
+    private final ObjectMap<String, Texture> textures = new ObjectMap<>();
+    private final ObjectSet<String> missing = new ObjectSet<>();
 
     @Override
     public void create() {
+        batch = new SpriteBatch();
+        shapes = new ShapeRenderer();
 
-        // Open the Main Menu when the game launches.
-        mainMenuScreen = new MainMenuScreen(this);
+        font = new BitmapFont();
+        font.getData().setScale(2f);
 
-        setScreen(mainMenuScreen);
+        // Each loads a pixel font from assets/ui if it exists, otherwise falls
+        // back to libGDX's built-in font at the given scale.
+        uiFont = makeFont(1.6f);
+        titleFont = makeFont(4.5f);
+        smallFont = makeFont(1.1f);
+
+        setScreen(new MenuScreen(this));
     }
 
-    // Called when Play is selected.
-    public void startNewGame() {
-
-        // Dispose of any previous match.
-        if (gameplayScreen != null) {
-
-            // Hide it first if it is currently active.
-            if (getScreen() == gameplayScreen) {
-                setScreen(null);
-            }
-
-            gameplayScreen.dispose();
-        }
-
-        // Create a completely new match.
-        gameplayScreen = new GameplayScreen(this);
-
-        // Display the gameplay screen.
-        setScreen(gameplayScreen);
-
-        gameplayScreen.beginStartCountdown(); //Begins the countdown between clicking on play and commencing the game
-
-        // Dispose of the old Game Over screen
-        // after switching away from it.
-        if (gameOverScreen != null) {
-            gameOverScreen.dispose();
-            gameOverScreen = null;
-        }
-
-        // Free the old Victory screen after switching away.
-        if (victoryScreen != null) {
-
-            victoryScreen.dispose();
-            victoryScreen = null;
-        }
+    /**
+     *
+     * @param scale scale of font
+     * @return chosen font
+     */
+    private BitmapFont makeFont(float scale) {
+        BitmapFont f = new BitmapFont();
+        f.getData().setScale(scale);
+        return f;
     }
+    /**
+     * Returns a shared, cached texture, or null if the file doesn't exist yet.
+     * Callers must null-check and must NOT dispose the result.
+     */
+    public Texture texture(String path) {
+        Texture cached = textures.get(path);
+        if (cached != null) return cached;
+        if (missing.contains(path)) return null;
 
-    // We'll use this for returning to the Main Menu.
-    public void showMainMenu() {
-
-        setScreen(mainMenuScreen);
+        if (!Gdx.files.internal(path).exists()) {
+            missing.add(path);        // remember, so we don't hit the disk every frame
+            return null;
+        }
+        Texture t = new Texture(Gdx.files.internal(path));
+        t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        textures.put(path, t);
+        return t;
     }
-
-
-    // Open the Pause Menu without destroying gameplay.
-    public void pauseGame() {
-
-        if (getScreen() != gameplayScreen) {
-            return;
-        }
-
-        // Create the Pause Menu only once.
-        if (pauseScreen == null) {
-            pauseScreen = new PauseScreen(this);
-        }
-
-        setScreen(pauseScreen);
-    }
-
-    // Return to the existing gameplay screen.
-    public void resumeGame() {
-
-        if (getScreen() == pauseScreen &&
-            gameplayScreen != null) {
-
-            setScreen(gameplayScreen);
-        }
-    }
-
-    // End the current match and return to Main Menu.
-    public void endGameToMenu() {
-
-        setScreen(mainMenuScreen);
-
-        if (gameplayScreen != null) {
-
-            gameplayScreen.dispose();
-            gameplayScreen = null;
-        }
-        if (gameOverScreen != null) {
-            gameOverScreen.dispose();
-            gameOverScreen = null;
-        }
-        if (victoryScreen != null) {
-            victoryScreen.dispose();
-            victoryScreen = null;
-        }
-    }
-
-
-    public void showGameOver(GameOverScreen.Reason reason) {
-
-        // Only transition out of active gameplay.
-        if (getScreen() != gameplayScreen) {
-            return;
-        }
-
-        // Create the correct Game Over screen.
-        gameOverScreen = new GameOverScreen(
-            this,
-            reason
-        );
-
-        // Display it.
-        setScreen(gameOverScreen);
-    }
-
-
-    public void showVictory(
-        int secondsRemaining,
-        int energyPercentage,
-        int itemsUsed,
-        int eventsTriggered
-    ) {
-
-        // Only allow Victory from active gameplay.
-        if (getScreen() != gameplayScreen) {
-            return;
-        }
-
-        // Create a screen with the final results.
-        victoryScreen = new VictoryScreen(
-            this,
-            secondsRemaining,
-            energyPercentage,
-            itemsUsed,
-            eventsTriggered
-        );
-
-        // Display the Victory screen.
-        setScreen(victoryScreen);
-    }
-
-
-    public void openTutorial() {
-
-        if (tutorialScreen == null) {
-            tutorialScreen = new TutorialScreen(this);
-        }
-
-        // Remember the screen we came from.
-        tutorialReturnScreen = getScreen();
-
-        setScreen(tutorialScreen);
-    }
-
-
-    public void backFromTutorial() {
-
-        if (getScreen() != tutorialScreen) {
-            return;
-        }
-
-        if (tutorialReturnScreen != null) {
-
-            Screen previousScreen = tutorialReturnScreen;
-
-            tutorialReturnScreen = null;
-
-            // Return to the same screen instance.
-            setScreen(previousScreen);
-        }
-    }
-
-
 
     @Override
     public void dispose() {
-
-        super.dispose();
-
-        if (gameplayScreen != null) {
-            gameplayScreen.dispose();
+        if (getScreen() != null) {
+            getScreen().dispose();
         }
-
-        if (mainMenuScreen != null) {
-            mainMenuScreen.dispose();
-        }
-
-        if (pauseScreen != null) {
-            pauseScreen.dispose();
-        }
-        if (gameOverScreen != null) {
-            gameOverScreen.dispose();
-        }
-        if (victoryScreen != null) {
-            victoryScreen.dispose();
-        }
-
-        if (tutorialScreen != null) {
-            tutorialScreen.dispose();
+        batch.dispose();
+        shapes.dispose();
+        font.dispose();
+        uiFont.dispose();
+        titleFont.dispose();
+        smallFont.dispose();
+        for (Texture t : textures.values()) {
+            t.dispose();
         }
     }
-
 }

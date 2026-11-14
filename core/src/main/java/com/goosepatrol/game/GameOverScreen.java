@@ -1,192 +1,73 @@
-
 package com.goosepatrol.game;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.graphics.Color;
 
-public class GameOverScreen extends ScreenAdapter {
+/**
+ * shown when player loses
+ * 2 causes - energy runs out or clock runs out
+ *
+ * BUTTONS: try again to restart
+ *          main menu to return to main menu
+ */
+public class GameOverScreen extends UiScreen {
 
-    // The two possible reasons for losing.
-    public enum Reason {
-        OUT_OF_ENERGY,
-        TIME_UP
-    }
+    // true if time ran out, false if energy ran out
+    private final boolean timeUp;
 
-    private static final float WIDTH = 1448f;
-    private static final float HEIGHT = 1086f;
-
-    private static final int OPTION_COUNT = 2;
-
-    // Arrow position beside the buttons.
-    private static final float ARROW_X = 435f;
-    private static final float ARROW_SIZE = 50f;
-
-    // Button centres in libGDX coordinates.
-    private static final float[] BUTTON_Y = {
-        486f, // Try Again
-        384f  // Main Menu
-    };
-
-    private final GoosePatrolGame game;
-
-    private final SpriteBatch batch;
-    private final FitViewport viewport;
-
-    private final Texture background;
-    private final Texture selectionArrow;
-
-    private int selectedOption = 0;
+    // try again button index 0
+    //main menu index 1
+    private final ButtonMenu menu = new ButtonMenu(
+        new String[] {"TRY AGAIN", "MAIN MENU"},
+        275f, 340f, 250f, 44f, 16f);
 
 
-    public GameOverScreen(
-        GoosePatrolGame game,
-        Reason reason
-    ) {
-
-        this.game = game;
-
-        batch = new SpriteBatch();
-
-        viewport = new FitViewport(
-            WIDTH,
-            HEIGHT
-        );
-
-        // Choose the correct artwork.
-        String imagePath;
-
-        if (reason == Reason.OUT_OF_ENERGY) {
-            imagePath = "menu/game_over_energy.png";
-        } else {
-            imagePath = "menu/game_over_time.png";
-        }
-
-        background = new Texture(
-            Gdx.files.internal(imagePath)
-        );
-
-        background.setFilter(
-            Texture.TextureFilter.Nearest,
-            Texture.TextureFilter.Nearest
-        );
-
-        // Reuse the arrow from MenuArrow class.
-        selectionArrow = MenuArrow.create();
+    /**
+     * cerates game over screen
+     *
+     * @param game the game - for screen changes and shared batch
+     * @param timeUp true if time ran out, false if energy ran out
+     */
+    public GameOverScreen(GoosePatrolGame game, boolean timeUp) {
+        super(game);
+        this.timeUp = timeUp;
     }
 
 
-    private boolean handleInput() {
-
-        // Move selection upwards.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-
-            selectedOption =
-                (selectedOption - 1 + OPTION_COUNT)
-                % OPTION_COUNT;
-        }
-
-        // Move selection downwards.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-
-            selectedOption =
-                (selectedOption + 1)
-                % OPTION_COUNT;
-        }
-
-        // Activate the selected button.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
-            || Gdx.input.isKeyJustPressed(
-                Input.Keys.NUMPAD_ENTER)) {
-
-            switch (selectedOption) {
-
-                case 0:
-                    // Try Again: create a fresh match.
-                    game.startNewGame();
-                    return true;
-
-                case 1:
-                    // Return to the Main Menu.
-                    game.endGameToMenu();
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-
+    /**
+     * handles buttons
+     * try again switcehs to new game screen
+     * main menu switches to new main menu
+     *
+     * @param delta seconds since last frame
+     */
     @Override
-    public void show() {
-
-        // Select Try Again by default.
-        selectedOption = 0;
-    }
-
-    @Override
-    public void render(float delta) {
-
-        // Read keyboard input.
-        // Stop rendering if we change screens.
-        if (handleInput()) {
-            return;
+    protected void update(float delta) {
+        switch (menu.update(mouseX, mouseY)) {
+            case 0:
+                game.setScreen(new GameScreen(game));
+                break;
+            case 1:
+                game.setScreen(new MenuScreen(game));
+                break;
+            default:
+                break;
         }
-
-        // Clear the window.
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Apply our 4:3 viewport.
-        viewport.apply();
-
-        batch.setProjectionMatrix(
-            viewport.getCamera().combined
-        );
-
-        batch.begin();
-
-        // Draw the selected Game Over artwork.
-        batch.draw(
-            background,
-            0f,
-            0f,
-            WIDTH,
-            HEIGHT
-        );
-
-        // Find the selected button's vertical centre.
-        float centreY = BUTTON_Y[selectedOption];
-
-        // Draw the movable arrow.
-        batch.draw(
-            selectionArrow,
-            ARROW_X,
-            centreY - ARROW_SIZE / 2f,
-            ARROW_SIZE,
-            ARROW_SIZE
-        );
-
-        batch.end();
     }
 
+    /**
+     * draws bg, game over heading, and panel containing loss condition
+     */
     @Override
-    public void resize(int width, int height) {
+    protected void draw() {
+        background(".png", 0.35f);
+        textCentered(game.titleFont, "GAME OVER", W / 2f, 530f, RED);
 
-        viewport.update(width, height, true);
+        panel(160f, 190f, 480f, 230f);
+        textCentered(game.uiFont, timeUp ? "TIME'S UP!" : "THE GEESE GOT YOU",
+            W / 2f, 395f, Color.WHITE);
+
+        menu.draw(this, false);
+
+        image(game.texture("ui/menu_geese.png"), 600f, 200f, 130f, 150f);
     }
-
-    @Override
-    public void dispose() {
-
-        batch.dispose();
-        background.dispose();
-        selectionArrow.dispose();
-    }
-
-
 }
