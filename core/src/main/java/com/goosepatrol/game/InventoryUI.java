@@ -15,7 +15,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-// Displays inventory slots, item icons, key numbers and remaining quantities.
+/**
+ * Displays the player's inventory interface, including item icons,
+ * selection numbers, remaining quantities, and highlighted slots.
+ * Undiscovered Sausage Rolls are displayed as question marks.
+ * The interface scales according to the game window size.
+ */
 public class InventoryUI implements Disposable {
 
     private final Inventory inventory;
@@ -28,6 +33,13 @@ public class InventoryUI implements Disposable {
     // Use existing item names to find the corresponding icons.
     private final Map<String, Texture> itemIcons = new HashMap<>();
 
+    /**
+     * Creates the inventory interface for the specified inventory.
+     * Initialises rendering resources, sets up the viewport,
+     * and loads the item icons.
+     *
+     * @param inventory the inventory to display
+     */
     public InventoryUI(Inventory inventory) {
 
         this.inventory = inventory;
@@ -67,7 +79,14 @@ public class InventoryUI implements Disposable {
         );
     }
 
-    // Load a pixel-art texture.
+    /**
+     * Loads a pixel-art item icon from the specified asset path.
+     * Uses nearest-neighbour filtering to preserve sharp pixels.
+     *
+     * @param path the internal asset path of the icon
+     * @return the loaded texture
+     * @throws IllegalArgumentException if the icon file does not exist
+     */
     private Texture loadIcon(String path) {
 
         if (!Gdx.files.internal(path).exists()) {
@@ -90,6 +109,13 @@ public class InventoryUI implements Disposable {
         return texture;
     }
 
+    /**
+     * Draws the inventory interface on the screen.
+     * Displays item slots, selection borders, icons, key numbers,
+     * and remaining quantities.
+     * Shows a question mark for an undiscovered Sausage Roll.
+     * Adjusts the layout and text size to fit the window.
+     */
     public void draw() {
 
         int count = inventory.getSize();
@@ -320,13 +346,21 @@ public class InventoryUI implements Disposable {
         batch.end();
     }
 
-    // Resize the inventory when the game window changes.
+    /**
+     * Updates the inventory viewport when the game window is resized.
+     *
+     * @param width the new window width in pixels
+     * @param height the new window height in pixels
+     */
     public void resize(int width, int height) {
 
         viewport.update(width, height, true);
     }
 
-    // Release graphics resources when no longer needed.
+    /**
+     * Releases the graphics resources used by the inventory interface,
+     * including item textures, the sprite batch, font, and shape renderer.
+     */
     @Override
     public void dispose() {
 

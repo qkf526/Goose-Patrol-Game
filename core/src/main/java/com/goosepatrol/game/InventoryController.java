@@ -4,11 +4,23 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.utils.Disposable;
 
-// This class manages the player's inventory and handles input for selecting and using items.
+/**
+ * Manages the player's inventory and handles input for selecting
+ * and using items during gameplay.
+ * It also updates and displays the inventory interface.
+ */
 public class InventoryController implements Disposable {
     private final Player player;
     private final Inventory inventory;
     private final InventoryUI ui;
+
+    /**
+     * Creates an inventory controller for the specified player.
+     * Initialises the inventory with starting items and selects
+     * the first available inventory slot.
+     *
+     * @param player the player who owns and uses the inventory
+     */
 
     public InventoryController(Player player) {
         this.player = player;
@@ -24,8 +36,20 @@ public class InventoryController implements Disposable {
         select(0); // Match the highlighted first slot to the player's equipped animation.
     }
 
+    /**
+     * Returns the inventory managed by this controller.
+     *
+     * @return the player's inventory
+     */
     public Inventory getInventory() { return inventory; }
 
+    /**
+     * Attempts to equip the item in the specified inventory slot.
+     * The selection is only updated if the slot contains an item
+     * and the player successfully equips it.
+     *
+     * @param index the index of the inventory slot to select
+     */
     private void select(int index) {
         InventorySlot slot = inventory.getSlot(index);
         if (slot == null || slot.getQuantity() == 0) return;
@@ -35,6 +59,13 @@ public class InventoryController implements Disposable {
         // Equip first; only update UI selection if Player accepts the change.
         if (player.equipItem(type)) inventory.selectSlot(index);
     }
+
+     /**
+     * Handles keyboard input for selecting and using inventory items.
+     * Number keys 1-4 select items, 0 unequips the current item,
+     * and Space starts using the equipped item.
+     * Healing items cannot be used when the player has full health.
+     */
 
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) select(0);
@@ -58,7 +89,17 @@ public class InventoryController implements Disposable {
         }
     }
 
-    /** Call immediately AFTER player.update(), once per game frame. */
+     /**
+     * Processes an item after its use animation has finished.
+     * Applies the item's effect and removes one item from the inventory
+     * if the action is successful. The item is unequipped when its
+     * remaining quantity reaches zero.
+     * This method should be called after player.update() each frame.
+     *
+     * @return the type of item successfully used, or null if
+     *         no item use was completed or applied
+     */
+
 
     public ItemType updateAfterPlayer() {
 
@@ -90,8 +131,21 @@ public class InventoryController implements Disposable {
         return finished;
     }
 
-
+        /**
+     * Draws the inventory interface on the screen.
+     */
     public void draw() { ui.draw(); }
+
+    /**
+     * Updates the inventory interface when the window is resized.
+     *
+     * @param width the new window width in pixels
+     * @param height the new window height in pixels
+     */
     public void resize(int width, int height) { ui.resize(width, height); }
+
+    /**
+     * Releases resources used by the inventory interface.
+     */
     @Override public void dispose() { ui.dispose(); }
 }
