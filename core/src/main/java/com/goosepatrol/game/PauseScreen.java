@@ -85,7 +85,7 @@ public class PauseScreen extends ScreenAdapter {
     }
 
     /**
-     * runs one fram : handles input, draws artwork and arrow beside option
+     * runs one frame : handles input, draws artwork and arrow beside option
      * <p>
      * nothing is drawn if input switched to another screen
      *

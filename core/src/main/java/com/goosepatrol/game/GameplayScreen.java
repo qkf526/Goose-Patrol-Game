@@ -185,7 +185,6 @@ public class GameplayScreen extends ScreenAdapter {
         campusMap = new TmxMapLoader().load("maps/campus.tmx"); // Load the campus map from the TMX file.
         mapRenderer = new OrthogonalTiledMapRenderer(campusMap); // Create a renderer for the campus map.
         collisions = new CollisionMap(campusMap); // Create a collision map for detecting obstacles in the campus map.
-        System.out.println("Collision zones loaded: " + collisions.getObstacleCount()); // Print the number of collision zones loaded from the map to the console.
 
         // READ MAP DIMENSIONS
         int columns = campusMap.getProperties().get("width", Integer.class); // Get the number of columns in the map.
@@ -212,8 +211,6 @@ public class GameplayScreen extends ScreenAdapter {
 
         // Preserve sharp pixel-art edges.
         seedTexture.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);
-
-        System.out.println("Campus loaded: " + mapWidth + "x" + mapHeight + " pixels"); // Print the dimensions of the loaded campus map to the console.
 
         eventArea = new EventArea();
         statueEvent = new StatueEvent();

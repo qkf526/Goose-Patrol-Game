@@ -82,7 +82,6 @@ public class InventoryController implements Disposable {
             // Healing items can't be wasted when already at maximum health.
             if ((type == ItemType.BANDAGE || type == ItemType.SAUSAGE_ROLL) &&
                 player.getHealth() >= player.getMaxHealth()) {
-                System.out.println("Health already full. Healing item not used.");
                 return;
             }
             player.startUsingItem();

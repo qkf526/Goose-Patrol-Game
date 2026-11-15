@@ -17,15 +17,6 @@ public class Seeds extends Item {
     }
 
     /**
-     * Performs the current Seeds use action.
-     * Prints a message indicating that goose distraction
-     * functionality will be connected later.
-     */
-    public void use() {
-        System.out.println("Seeds used. Goose distraction will be connected later.");
-    }
-
-    /**
      * Attempts to apply the Seeds item's effect.
      * Calls the use method if the player exists
      * and has not been defeated.
@@ -37,7 +28,6 @@ public class Seeds extends Item {
     @Override
     public boolean applyEffect(Player player) {
         if (player == null || player.isDefeated()) return false;
-        use();
         return true;
     }
 }

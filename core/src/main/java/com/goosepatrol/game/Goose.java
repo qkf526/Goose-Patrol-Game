@@ -119,8 +119,6 @@ public class Goose {
 
                     // Enter the PECKING state.
                     changeState(State.PECKING);
-
-                    System.out.println( "Goose entered PECKING state!");
                 }
 
                 break;
@@ -152,7 +150,6 @@ public class Goose {
 
                             player.applyKnockbackFrom(x, y);
 
-                            System.out.println( "Goose peck successful! HP: " + player.getHealth());
                         }
                     }
                 }

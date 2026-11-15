@@ -10,7 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 /**
- * ehole screen is one image, drawn and waits for player ot leave
+ * whole screen is one image, drawn and waits for player ot leave
  */
 public class TutorialScreen extends ScreenAdapter {
 

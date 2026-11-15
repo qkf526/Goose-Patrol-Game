@@ -108,7 +108,7 @@ public class SoundManager implements Disposable {
             sound.play(volume, MathUtils.random(0.9f, 1.1f), 0f);
         }
     }
-
+    //Methods to play game sounds
     public void playAirHorn()       { play("air_horn", 0.32f); }
     public void playSeeds()         { play("seeds", 0.25f); }
     public void playBandage()       { play("bandage", 0.30f); }

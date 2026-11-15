@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 
-/** Four waves, a 5-minute timer, item responses, and win/loss state. */
+/** Fives waves, a 5-minute timer, item responses, and win/loss state. */
 public class GooseWaveManager {
 
     public enum GameState { PAUSED, PLAYING, WON, LOST }
@@ -260,7 +260,6 @@ public class GooseWaveManager {
     private void spawnWave(int waveNumber, Player player, CollisionMap collisions) {
         float playerX = player.getCentreX();
         float playerY = player.getCentreY();
-        int spawned = 0;
         for (int i = 0; i < WAVE_SIZES[waveNumber]; i++) {
             // Rotate spawn points between waves to vary the approach directions.
             int initialIndex = (waveNumber * 3 + i * 2) % SPAWN_POINTS.length;
@@ -268,13 +267,10 @@ public class GooseWaveManager {
                 float[] point = SPAWN_POINTS[(initialIndex + tryIndex) % SPAWN_POINTS.length];
                 if (isValidSpawn(point[0], point[1], playerX, playerY, collisions) && !isSpawnOccupied(point[0], point[1])) {
                     geese.add(new Goose(point[0], point[1]));
-                    spawned++;
                     break;
                 }
             }
         }
-        // Warn if all geese couldn't spawn: map collisions may have changed.
-        System.out.println("Wave " + (waveNumber + 1) + " spawned " + spawned + " geese.");
     }
 
     private boolean isSpawnOccupied(float x, float y) {
@@ -358,7 +354,6 @@ public class GooseWaveManager {
             else closest.attractToSeeds(seedX, seedY);
             affected++;
         }
-        System.out.println((horn ? "Air Horn" : "Seeds") + " affected " + affected + " geese.");
         return affected;
     }
 

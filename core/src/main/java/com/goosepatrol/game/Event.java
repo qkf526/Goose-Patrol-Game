@@ -141,7 +141,6 @@ public class Event {
     // Give the student the reward item by adding it to their inventory.
     private void giveItem(Inventory inventory) {
         inventory.addItem(rewardItem, 1); // Add one of the item to the student's inventory.
-        System.out.println("The student received: " + rewardItem.getName());
     }
  
     // Draw the chat box above the speaker while the student is in range.
@@ -200,7 +199,6 @@ public class Event {
 
     //restarts the event, so the item can be given again in a new match.
     public void reset() {
-        System.out.println("TEST: Event reset"); // TEMPORARY TEST
         currentLine = 0;
         dialogActive = false;
         playerInRange = false;

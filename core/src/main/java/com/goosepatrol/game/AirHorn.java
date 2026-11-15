@@ -48,7 +48,6 @@ public class AirHorn extends Item {
     @Override
     public boolean applyEffect(Player player) {
         if (player == null || player.isDefeated()) return false;
-        System.out.println("Air Horn used. Goose scare effect will be connected later.");
         return true;
     }
 }

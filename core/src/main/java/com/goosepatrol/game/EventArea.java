@@ -167,7 +167,6 @@ public class EventArea {
 
     // restart event area back for a new match.
     public void reset() {
-        System.out.println("TEST: EventArea reset"); // TEMPORARY TEST
         inEventArea = false; // The student starts the new match on campus.
         atEntrance = false;
         atExit = false;
